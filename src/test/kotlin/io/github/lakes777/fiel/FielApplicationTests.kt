@@ -2,9 +2,6 @@ package io.github.lakes777.fiel
 
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
-import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.jdbc.core.simple.JdbcClient
 import org.springframework.test.web.servlet.MockMvc
@@ -14,10 +11,9 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
-@Import(TestcontainersConfiguration::class)
-@SpringBootTest
-@AutoConfigureMockMvc
+@TesteDeIntegracao
 class FielApplicationTests {
     @Autowired
     private lateinit var mvc: MockMvc
@@ -42,6 +38,19 @@ class FielApplicationTests {
             .andExpect(status().isNotFound)
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
             .andExpect(jsonPath("$.status").value(404))
+    }
+
+    @Test
+    fun `o Flyway aplicou todas as migrações sem falha`() {
+        val falhas =
+            jdbc
+                .sql(
+                    "select count(*) from flyway_schema_history where not success",
+                ).query(Long::class.java)
+                .single()
+        val aplicadas = jdbc.sql("select count(*) from flyway_schema_history").query(Long::class.java).single()
+        assertEquals(0, falhas)
+        assertTrue(aplicadas >= 1)
     }
 
     @Test

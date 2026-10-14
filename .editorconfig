@@ -9,6 +9,8 @@ indent_size = 4
 
 [*.{kt,kts}]
 ktlint_code_style = ktlint_official
+# O mesmo limite do detekt
+max_line_length = 120
 # Nomes de teste em português com espaços (`responde 200 quando...`) são permitidos nos testes
 ktlint_function_naming_ignore_when_annotated_with = Test
 
