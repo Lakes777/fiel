@@ -1,0 +1,16 @@
+# Postgres para desenvolvimento: docker compose up -d
+# Porta 5436 (a 5433 é do Vigil, a 5434 do Beacon e do Cadence, a 5435 do Pursuit)
+services:
+  banco:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: fiel
+      POSTGRES_USER: fiel
+      POSTGRES_PASSWORD: fiel
+    ports:
+      - "127.0.0.1:5436:5432"
+    volumes:
+      - dados:/var/lib/postgresql/data
+
+volumes:
+  dados:
