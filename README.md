@@ -17,7 +17,7 @@ em outra, e o próprio banco de dados recusa um lançamento que não feche em ze
 
 - [x] **1. Esqueleto:** Kotlin + Spring Boot 4, Gradle (Kotlin DSL), PostgreSQL 17 com Flyway, `/saude`, erros no formato RFC 9457, testes com Testcontainers, ktlint e detekt no CI
 - [x] **2. Razão contábil:** partidas dobradas, valores em centavos (`Long`), lançamentos imutáveis e soma zero conferida pelo banco; testes de propriedade
-- [ ] **3. Usuários e chaves:** Spring Security, cada um só enxerga as próprias contas
+- [x] **3. Usuários e chaves:** Spring Security com sessão no Postgres e CSRF, cada um só enxerga as próprias contas
 - [ ] **4. Transferências:** `Idempotency-Key`, saldo nunca negativo, limite diário e noturno, teste com 100 transferências simultâneas
 - [ ] **5. Cobranças com QR:** formato TLV com CRC16, estados e expiração
 - [ ] **6. Avisos ao lojista (webhooks):** outbox, novas tentativas com espera crescente, assinatura HMAC com carimbo de tempo, fila de falhas
@@ -64,8 +64,56 @@ conta feita à parte, e centenas de lançamentos que não fecham, escritos diret
 precisa recusar. Cada regra foi conferida com uma contraprova: desligada de propósito, algum teste
 quebra.
 
-A razão ainda não tem rotas HTTP: elas chegam com os usuários (fase 3), para nenhuma rota de
-dinheiro existir sem login.
+## Usuários, login e chaves
+
+Cada pessoa tem uma **carteira**. No cadastro, a conta **Emissão** do sistema paga R$ 1.000,00 de
+mentira a ela, num lançamento normal do razão: a soma de todo o sistema continua zero, e o saldo
+da Emissão é sempre menos todo o dinheiro em circulação.
+
+**Login por sessão, não por JWT.** O login devolve um cookie `FIEL_SESSAO` (HttpOnly, SameSite
+Strict, só HTTPS) com o id de uma sessão guardada no Postgres (Spring Session JDBC). Por isso dá
+para **sair de verdade**: `DELETE /sessao` apaga a sessão na hora, e `DELETE /sessoes` derruba
+todos os aparelhos. Um JWT continuaria valendo até vencer.
+
+Como o navegador manda o cookie sozinho, todo pedido que muda algo exige também o **token CSRF**
+(cookie `XSRF-TOKEN`, devolvido no cabeçalho `X-XSRF-TOKEN`), que um site de fora não consegue
+ler. Vale até para o login, senão um site poderia logar você na conta dele.
+
+| Proteção | Como |
+| --- | --- |
+| Senha | bcrypt (`{bcrypt}` no hash, dá para trocar de algoritmo depois); de 10 caracteres a 72 bytes, o limite do bcrypt, em vez de cortar sem aviso |
+| Força bruta | 5 tentativas de login por e-mail a cada 15 min (429 com `Retry-After`), contadas **antes** de conferir a senha: 20 pedidos ao mesmo tempo ainda testam só 5 senhas (um teste conta as conferências do bcrypt). Senha certa zera a contagem |
+| Quem tem conta | No login, senha errada e e-mail sem cadastro dão a mesma resposta, no mesmo tempo. **O cadastro ainda revela** (409 para e-mail já usado); o certo é confirmar por e-mail, que o projeto não manda. Por isso o cadastro tem limite: 10 por hora por IP |
+| Fixação de sessão | O id da sessão e o token CSRF mudam no login |
+| Conta de outra pessoa | **Autorização por objeto:** a conta (ou chave) de outra pessoa responde 404, igual a uma que não existe |
+| Varredura de chaves | 30 consultas por minuto por usuário; a consulta mostra só "Ana S." |
+| A sessão no banco | Guarda o usuário sem o hash da senha |
+
+**Chaves** são apelidos para a carteira: o **e-mail do próprio dono** (ninguém cadastra o e-mail de
+outra pessoa para receber no lugar dela) e **aleatórias** (UUID). Nada de CPF ou telefone. No
+máximo 5 por conta.
+
+Como no razão, as regras que importam também estão **no banco**
+([`V2__usuarios_e_chaves.sql`](src/main/resources/db/migration/V2__usuarios_e_chaves.sql)): o dono
+e o tipo de uma conta nunca mudam (trocar o dono seria mover o dinheiro sem lançamento), só
+carteira tem dono, uma por pessoa, o e-mail de um usuário não muda, e o limite de 5 chaves vale
+mesmo com duas criadas ao mesmo tempo, em qualquer nível de isolamento: a conta guarda um
+contador de chaves (com `check` de 0 a 5) que só os gatilhos mexem. Duas inserções simultâneas
+atualizam a mesma linha, então uma espera a outra. Um `count(*)` com `for update` (a primeira
+versão) falhava em `REPEATABLE READ`, onde a contagem enxerga a "foto" do começo da transação; os
+testes seguram uma transação aberta nos dois níveis para provar que a segunda não passa.
+
+| Rota | O que faz |
+| --- | --- |
+| `GET /csrf` | Entrega o token CSRF (chamar antes do primeiro POST) |
+| `POST /cadastro` | `{nome, email, senha}`: cria usuário, carteira e bônus |
+| `POST /sessao` | `{email, senha}`: entra |
+| `GET /eu` | Quem está logado |
+| `DELETE /sessao` / `DELETE /sessoes` | Sai deste aparelho / de todos |
+| `GET /contas` | Minhas contas, com saldo em centavos |
+| `GET /contas/{id}/extrato?limite=50` | Extrato, mais recente primeiro, com o saldo depois de cada movimento |
+| `GET /chaves`, `POST /chaves` `{tipo}`, `DELETE /chaves/{id}` | Minhas chaves (`email` ou `aleatoria`) |
+| `POST /chaves/consulta` `{valor}` | De quem é a chave ("Ana S."); POST para a chave não ir parar na URL |
 
 ## Rodando
 
