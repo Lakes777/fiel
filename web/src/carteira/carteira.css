@@ -1,0 +1,260 @@
+/* Carteira e pagar com QR. Cores só pelas variáveis de estilos/tema.css. */
+
+.cabeca-carteira {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+/* No computador, a carteira à esquerda e chaves e ajuda à direita; no celular, uma coluna */
+.grade-carteira {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+}
+@media (min-width: 900px) {
+    .grade-carteira {
+        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+        gap: 28px;
+    }
+}
+.coluna-carteira {
+    box-shadow: var(--sombra);
+}
+.coluna-lado {
+    display: grid;
+    gap: 20px;
+    min-width: 0;
+}
+@media (max-width: 640px) {
+    .coluna-carteira,
+    .coluna-lado .cartao {
+        padding: 16px;
+    }
+}
+
+/* ---------- Minhas chaves ---------- */
+.chaves .explica {
+    margin: -4px 0 14px;
+    font-size: 14px;
+}
+.lista-chaves {
+    list-style: none;
+    margin: 0 0 14px;
+    padding: 0;
+}
+.lista-chaves li {
+    display: grid;
+    gap: 6px;
+    padding: 12px 0;
+}
+.lista-chaves li + li {
+    border-top: 1px solid var(--risco);
+}
+.lista-chaves .tipo {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--latao);
+}
+/* A aleatória é um UUID longo: quebra em qualquer ponto em vez de empurrar a tela para o lado */
+.lista-chaves .valor-chave {
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+}
+.acoes-chave,
+.confirmar-apagar,
+.criar-chave {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+.confirmar-apagar span {
+    flex-basis: 100%;
+    font-size: 13px;
+    color: var(--sai);
+}
+.dica-chaves {
+    margin: 10px 0 0;
+    font-size: 13px;
+}
+
+.ajuda ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 14px;
+    color: var(--suave);
+}
+.ajuda li + li {
+    margin-top: 6px;
+}
+
+/* ---------- Diálogo (transferir) ---------- */
+.dialogo-fundo {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    background: color-mix(in srgb, var(--tinta) 45%, transparent);
+    animation: fundo-surge 0.25s var(--curva);
+}
+.dialogo {
+    width: min(100%, 440px);
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    box-shadow: var(--sombra);
+    animation: dialogo-surge 0.35s var(--curva);
+}
+@media (max-width: 640px) {
+    /* No celular, sobe de baixo, perto do polegar */
+    .dialogo-fundo {
+        place-items: end stretch;
+        padding: 0;
+    }
+    .dialogo {
+        width: 100%;
+        border-radius: var(--raio) var(--raio) 0 0;
+        max-height: 92dvh;
+        padding: 18px 16px 24px;
+    }
+}
+@keyframes fundo-surge {
+    from {
+        opacity: 0;
+    }
+}
+@keyframes dialogo-surge {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+}
+.dialogo-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+.dialogo-topo h2 {
+    font-size: 22px;
+}
+
+/* Os passos: quatro tracinhos, o atual em latão */
+.passos {
+    display: flex;
+    gap: 6px;
+    list-style: none;
+    margin: 0 0 18px;
+    padding: 0;
+}
+.passos li {
+    flex: 1;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--risco);
+    transition: background-color 0.3s var(--curva);
+}
+.passos li.atual {
+    background: var(--latao);
+}
+
+.para {
+    margin: 0 0 14px;
+}
+.para b {
+    color: var(--numero);
+}
+.quebra {
+    overflow-wrap: anywhere;
+}
+.valor-confirmar {
+    margin: 0 0 4px;
+}
+.botoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.botoes > * {
+    flex: 1 1 140px;
+}
+.botao.largo {
+    width: 100%;
+}
+.dica-rede {
+    font-size: 13px;
+    margin: 12px 0 0;
+}
+
+/* ---------- Comprovante (transferência e pagamento) ---------- */
+.comprovante .rotulo {
+    margin-bottom: 2px;
+}
+.comprovante .numero-grande {
+    margin: 0 0 12px;
+}
+.comprovante dl {
+    margin: 0 0 20px;
+    border-top: 1px dashed var(--risco);
+}
+.comprovante dl div {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--risco);
+    font-size: 14px;
+}
+.comprovante dt {
+    color: var(--suave);
+}
+.comprovante dd {
+    margin: 0;
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+/* ---------- Pagar com QR ---------- */
+.tela-pagar h1 {
+    margin-bottom: 20px;
+}
+.caixa-pagar {
+    max-width: 520px;
+    box-shadow: var(--sombra);
+}
+.codigo-qr {
+    resize: vertical;
+    font-size: 14px;
+    overflow-wrap: anywhere;
+}
+.conferir {
+    border-top: 1px solid var(--risco);
+    margin-top: 20px;
+    padding-top: 18px;
+}
+.conferir .numero-grande {
+    margin: 0;
+}
+.descricao-cobranca {
+    margin: 4px 0;
+    overflow-wrap: anywhere;
+}
+.linha-estado {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 16px;
+    font-size: 14px;
+}
+.volta {
+    margin-top: 16px;
+    font-size: 14px;
+}
