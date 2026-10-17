@@ -20,7 +20,7 @@ em outra, e o próprio banco de dados recusa um lançamento que não feche em ze
 - [x] **3. Usuários e chaves:** Spring Security com sessão no Postgres e CSRF, cada um só enxerga as próprias contas
 - [x] **4. Transferências:** `Idempotency-Key`, saldo nunca negativo, limite diário e noturno, teste com 100 transferências simultâneas
 - [x] **5. Cobranças com QR:** formato TLV com CRC16, estados e expiração
-- [ ] **6. Avisos ao lojista (webhooks):** outbox, novas tentativas com espera crescente, assinatura HMAC com carimbo de tempo, fila de falhas
+- [x] **6. Avisos ao lojista (webhooks):** outbox, novas tentativas com espera crescente, assinatura HMAC com carimbo de tempo, fila de falhas
 - [ ] **7. Estorno e conciliação noturna:** só quem recebeu devolve (total ou em partes, sem prazo); com aviso no Telegram
 - [ ] **8. Interface:** React (carteira e painel do lojista) com atualização ao vivo
 - [ ] **9. Publicação:** demonstração no ar
@@ -230,6 +230,76 @@ para mandar R$ 1.000 de madrugada por transferência e esvaziar o resto pagando 
 | `POST /cobrancas/{id}/cancelamento` | Cancela uma pendente |
 | `POST /pagamentos/consulta` `{qr}` | O que vou pagar, com dados do servidor |
 | `POST /pagamentos` `{qr}` | Paga |
+
+## Avisos ao lojista (webhooks)
+
+O lojista cadastra um endereço (`PUT /webhook {url}`) e o Fiel avisa o sistema dele quando uma
+cobrança é paga ou expira, ou quando chega uma transferência (`cobranca.paga`,
+`cobranca.expirada`, `transferencia.recebida`). A resposta do cadastro traz o **segredo** da
+assinatura, que não aparece de novo.
+
+**Outbox.** O aviso é gravado **na mesma transação** do fato. Pagou, o aviso existe; o pagamento
+desfez (saldo, limite), o aviso some junto. Não há janela em que o dinheiro mudou e o aviso se
+perdeu, nem aviso de um pagamento que não aconteceu. Um teste confere os dois lados.
+
+**Entrega**, por uma tarefa que roda a cada 2 s, sem segurar transação aberta esperando a rede:
+
+1. reserva um lote de 10 com `FOR UPDATE SKIP LOCKED` e empurra a próxima tentativa para depois
+   do pior caso do lote inteiro (10 × o prazo de envio, mais 1 minuto). Outra instância pula o que
+   está reservado, e um aviso de uma instância que morreu no meio volta sozinho quando a reserva
+   vence. Teste: 5 entregadores ao mesmo tempo, 30 avisos, cada um chega **uma vez** (com um
+   receptor que responde rápido). Na contraprova (sem `SKIP LOCKED`), chegam repetidos;
+2. manda, **sem seguir redirecionamento** e com **prazo de 15 s para o envio inteiro**, inclusive o
+   corpo da resposta, que é descartado sem ler. O tempo máximo comum do cliente HTTP só vale até os
+   cabeçalhos: um lojista que mandasse a resposta 1 byte por vez prenderia a entrega de todo mundo
+   (teste: sem o prazo total, o envio levou 60 s). As tarefas agendadas têm 2 threads, para a
+   expiração das cobranças não esperar uma entrega lenta;
+3. 2xx é entregue. Qualquer outra resposta, falha de rede ou erro, tenta de novo com **espera
+   crescente**: 30 s, 1 min, 2 min... até 1 h, com até 20% ao acaso, para mil avisos que falharam
+   juntos não voltarem todos no mesmo segundo. Depois de 8 tentativas, vai para a **fila de
+   falhas** (`GET /avisos?estado=falhou`), e `POST /avisos/{id}/reenvio` manda de novo.
+
+**Assinatura**, no desenho do Stripe:
+
+```
+Fiel-Evento: cobranca.paga
+Fiel-Evento-Id: 3f2a9c1e-7b4d-4e8a-9f60-1c2d3e4f5a6b
+Fiel-Assinatura: t=1760652000,v1=<HMAC-SHA256 de "t.corpo" com o segredo, em hexadecimal>
+```
+
+O HMAC prova a origem e que o corpo não mudou; o `t` deixa o lojista recusar um aviso velho
+capturado e reenviado. A entrega é **pelo menos uma vez**: se a resposta do lojista se perde, o
+aviso vai de novo, com o mesmo `id`, para ele descartar. A ordem de chegada também não é garantida
+(um aviso que falhou chega depois de um mais novo): o lojista olha o `criadoEm` e o estado atual,
+não a ordem.
+
+**Lojista exemplo:** [`exemplos/lojista.py`](exemplos/lojista.py), só com a biblioteca padrão do
+Python. Confere a assinatura em tempo constante, recusa aviso com mais de 5 minutos e descarta
+repetidos pelo `id` de **dentro do corpo**, que a assinatura cobre. O cabeçalho `Fiel-Evento-Id`
+não é assinado: quem capturasse um aviso poderia reenviá-lo com outro id no cabeçalho.
+
+**SSRF.** O Fiel faz um pedido para uma URL escolhida pelo usuário. Sem cuidado, alguém cadastraria
+`http://169.254.169.254/` (os metadados da nuvem, com as credenciais da máquina) ou
+`http://localhost:5432` e usaria o Fiel para sondar a rede de dentro. Por isso o endereço precisa
+ser `https`, sem usuário e senha, com porta válida, e **todo IP** para onde o nome aponta precisa
+ser público: recusa loopback, redes privadas, link-local, CGNAT, multicast, reservados (`0/8`,
+`198.18/15`, `240/4`), IPv6 local e IPv4 escondido dentro de IPv6 (`::ffff:`, `::a.b.c.d`, NAT64,
+6to4). O histórico guarda só o status HTTP da resposta, nunca o corpo: se algo um dia passasse
+pela conferência, o Fiel não viraria um leitor da rede interna. A conferência é feita
+no cadastro e antes de cada envio, e o redirecionamento não é seguido, porque um 3xx levaria o
+pedido a um endereço não conferido. Sobra uma janela pequena: o DNS pode mudar entre a conferência e
+a conexão (*DNS rebinding*). Fechar de vez exigiria conectar no IP conferido.
+
+**Risco anotado: o segredo fica em claro no banco.** O Fiel precisa dele para assinar (um hash não
+serviria, ao contrário de uma senha). Quem vazasse um backup poderia forjar avisos para todos os
+lojistas. A defesa seria cifrar a coluna (AES-GCM, com a chave numa variável de ambiente).
+
+| Rota | O que faz |
+| --- | --- |
+| `PUT /webhook` `{url}` | Cadastra ou troca o endereço; devolve o segredo (novo a cada troca) |
+| `GET /webhook`, `DELETE /webhook` | Vê ou apaga; apagar manda os pendentes para a fila de falhas |
+| `GET /avisos?estado=` | Histórico de entregas (100 mais recentes); `falhou` é a fila de falhas |
+| `POST /avisos/{id}/reenvio` | Manda de novo um entregue ou que falhou, com as tentativas do zero |
 
 ## Rodando
 

@@ -1,5 +1,6 @@
 package io.github.lakes777.fiel.cobrancas
 
+import io.github.lakes777.fiel.avisos.Avisos
 import io.github.lakes777.fiel.chaves.mascararNome
 import io.github.lakes777.fiel.erros.Conflito
 import io.github.lakes777.fiel.erros.NaoEncontrado
@@ -17,14 +18,9 @@ import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Positive
 import jakarta.validation.constraints.Size
-import org.slf4j.LoggerFactory
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.scheduling.annotation.EnableScheduling
-import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
@@ -91,6 +87,7 @@ class Cobrancas(
     private val banco: CobrancasNoBanco,
     private val razao: Razao,
     private val saidas: Saidas,
+    private val avisos: Avisos,
     private val relogio: Clock,
     transacoes: PlatformTransactionManager,
 ) {
@@ -210,6 +207,16 @@ class Cobrancas(
                 ),
             )
         banco.marcarPaga(cobranca.id, pagador, lancamento.id, agora)
+        // Na mesma transação do pagamento (outbox): pagou, o aviso existe; desfez, nenhum dos dois
+        avisos.registrar(
+            cobranca.recebedorConta,
+            "cobranca.paga",
+            mapOf(
+                "cobranca" to cobranca.dadosDoAviso() + ("pagaEm" to agora.toString()),
+                "pagador" to mascararNome(usuario.nome),
+            ),
+            agora,
+        )
         return PagamentoFeito(cobranca.valor.valor, cobranca.descricao, recebedor, agora)
     }
 
@@ -219,7 +226,24 @@ class Cobrancas(
      * pagar cobrança vencida. Uma cobrança sendo paga agora está travada; esta espera e, depois,
      * já a vê paga e passa reto.
      */
-    fun expirarVencidas(): Int = banco.marcarExpiradas(agora())
+    fun expirarVencidas(): Int =
+        checkNotNull(
+            transacao.execute {
+                val agora = agora()
+                val expiradas = banco.marcarExpiradas(agora)
+                expiradas.forEach {
+                    avisos.registrar(
+                        it.recebedorConta,
+                        "cobranca.expirada",
+                        mapOf(
+                            "cobranca" to it.dadosDoAviso(),
+                        ),
+                        agora,
+                    )
+                }
+                expiradas.size
+            },
+        )
 
     private fun ler(qr: String): Qr = Qr.ler(qr.trim()) ?: throw PedidoInvalido("QR inválido: não é um QR do Fiel")
 
@@ -227,25 +251,6 @@ class Cobrancas(
     private fun agora() = relogio.instant().truncatedTo(ChronoUnit.MICROS)
 
     private fun naoEncontrada() = NaoEncontrado("cobrança não encontrada")
-}
-
-/**
- * A tarefa de expiração, a cada minuto. Desligável ([fiel.cobrancas.expirar-automaticamente]): os
- * testes chamam [Cobrancas.expirarVencidas] na hora que querem, com o relógio parado.
- */
-@Component
-@EnableScheduling
-@ConditionalOnProperty("fiel.cobrancas.expirar-automaticamente", havingValue = "true", matchIfMissing = true)
-class ExpiracaoDasCobrancas(
-    private val cobrancas: Cobrancas,
-) {
-    private val log = LoggerFactory.getLogger(javaClass)
-
-    @Scheduled(fixedDelay = 60_000, initialDelay = 60_000)
-    fun expirar() {
-        val expiradas = cobrancas.expirarVencidas()
-        if (expiradas > 0) log.info("{} cobrança(s) expirada(s)", expiradas)
-    }
 }
 
 @RestController

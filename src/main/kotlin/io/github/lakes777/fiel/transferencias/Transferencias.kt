@@ -1,5 +1,6 @@
 package io.github.lakes777.fiel.transferencias
 
+import io.github.lakes777.fiel.avisos.Avisos
 import io.github.lakes777.fiel.chaves.mascararNome
 import io.github.lakes777.fiel.erros.NaoEncontrado
 import io.github.lakes777.fiel.erros.PedidoInvalido
@@ -65,6 +66,7 @@ class Transferencias(
     private val jdbc: JdbcClient,
     private val razao: Razao,
     private val saidas: Saidas,
+    private val avisos: Avisos,
     private val relogio: Clock,
     transacoes: PlatformTransactionManager,
 ) {
@@ -165,8 +167,26 @@ class Transferencias(
                 .param("em", OffsetDateTime.ofInstant(agora, ZoneOffset.UTC))
                 .query(Long::class.java)
                 .single()
-        return TransferenciaFeita(id, valor.valor, recebedor, agora)
+        val feita = TransferenciaFeita(id, valor.valor, recebedor, agora)
+        avisarRecebedor(para, feita, mascararNome(usuario.nome))
+        return feita
     }
+
+    /** Na mesma transação da transferência (outbox), para o recebedor que tiver webhook. */
+    private fun avisarRecebedor(
+        para: Long,
+        feita: TransferenciaFeita,
+        de: String,
+    ) = avisos.registrar(
+        para,
+        "transferencia.recebida",
+        mapOf(
+            "transferencia" to
+                mapOf("id" to feita.id, "valorCentavos" to feita.valorCentavos, "em" to feita.em.toString()),
+            "de" to de,
+        ),
+        feita.em,
+    )
 
     private fun anterior(
         usuarioId: Long,

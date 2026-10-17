@@ -35,6 +35,16 @@ data class Cobranca(
     fun doLojista(agora: Instant) =
         CobrancaDoLojista(id, valor.valor, descricao, estadoEm(agora), criadaEm, expiraEm, pagaEm, qr())
 
+    /** O que vai no aviso ao lojista: o suficiente para ele achar o pedido dele, sem o QR. */
+    fun dadosDoAviso(): Map<String, Any?> =
+        mapOf(
+            "id" to id,
+            "valorCentavos" to valor.valor,
+            "descricao" to descricao,
+            "criadaEm" to criadaEm.toString(),
+            "expiraEm" to expiraEm.toString(),
+        )
+
     fun pagamento() = PagamentoFeito(valor.valor, descricao, mascararNome(recebedor), checkNotNull(pagaEm))
 
     /** O CRC não é segurança: um QR com outro valor impresso foi mexido, e não é pago. */
@@ -157,11 +167,21 @@ class CobrancasNoBanco(
             .param("id", id)
             .update()
 
-    fun marcarExpiradas(agora: Instant): Int =
-        jdbc
-            .sql("update cobranca set estado = 'expirada' where estado = 'pendente' and expira_em <= :agora")
-            .param("agora", utc(agora))
-            .update()
+    /** As que acabaram de expirar, para avisar cada lojista. */
+    fun marcarExpiradas(agora: Instant): List<Cobranca> {
+        val ids =
+            jdbc
+                .sql(
+                    """
+                    update cobranca set estado = 'expirada'
+                    where estado = 'pendente' and expira_em <= :agora
+                    returning id
+                    """.trimIndent(),
+                ).param("agora", utc(agora))
+                .query(Long::class.java)
+                .list()
+        return if (ids.isEmpty()) emptyList() else varias("c.id = any(:ids::bigint[])", "ids" to ids.toTypedArray())
+    }
 }
 
 private fun ResultSet.cobranca() =
