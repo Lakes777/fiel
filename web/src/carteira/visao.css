@@ -1,0 +1,84 @@
+.visao-carteira .rotulo-saldo {
+    margin: 0;
+    font-size: 13px;
+    color: var(--suave);
+}
+.visao-carteira .saldo {
+    margin: 2px 0 12px;
+    border-radius: 8px;
+    display: inline-block;
+}
+.visao-carteira .saldo-esqueleto {
+    height: 44px;
+    width: 220px;
+    margin: 4px 0 12px;
+}
+.visao-carteira .limites {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+    font-size: 12px;
+    color: var(--suave);
+}
+.visao-carteira .limite b {
+    display: block;
+    font-size: 13px;
+    color: var(--tinta);
+}
+.visao-carteira .trilho {
+    height: 5px;
+    border-radius: 3px;
+    margin-top: 5px;
+    background: var(--risco);
+    overflow: hidden;
+}
+.visao-carteira .trilho span {
+    display: block;
+    height: 100%;
+    background: var(--latao);
+    transition: width 0.8s var(--curva);
+}
+.visao-carteira .acoes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+}
+.visao-carteira .acoes > * {
+    padding-left: 8px;
+    padding-right: 8px;
+}
+.visao-carteira .extrato {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.visao-carteira .extrato li {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 12px;
+    padding: 10px 0;
+}
+.visao-carteira .extrato li + li {
+    border-top: 1px solid var(--risco);
+}
+.visao-carteira .descricao {
+    font-size: 14px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.visao-carteira .quando {
+    grid-column: 1;
+    font-size: 12px;
+    color: var(--suave);
+}
+.visao-carteira .valor {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+    align-self: center;
+    font-weight: 600;
+    white-space: nowrap;
+}

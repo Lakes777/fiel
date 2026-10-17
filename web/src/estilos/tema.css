@@ -1,0 +1,498 @@
+/*
+ * Identidade "Balança": marfim, verde-garrafa e latão no claro; no escuro ("Verde-garrafa", E1) o
+ * verde vira o fundo e o latão vira a cor dos botões. Toda cor passa por uma variável daqui: uma tela
+ * nunca escreve uma cor à mão, e o escuro funciona sozinho.
+ */
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/fraunces/600.css';
+@import '@fontsource/fraunces/600-italic.css';
+
+:root {
+    --fundo: #f4efe4;
+    --cartao: #fbf8f1;
+    --tinta: #1f2a26;
+    --suave: #5d655f;
+    --marca: #1f4d3f;
+    --numero: #1f4d3f;
+    --latao: #a9823d;
+    --entra: #1f4d3f;
+    --sai: #8c3b2e;
+    --risco: #e3dccb;
+    --botao: #1f4d3f;
+    --botao-texto: #f4efe4;
+    --contorno: #1f4d3f;
+    --foco: #a9823d;
+    --sombra: 0 30px 60px -40px rgb(31 42 38 / 0.35);
+    --paga-f: #d6e4dc;
+    --paga-t: #1f4d3f;
+    --pend-f: #f0e2c4;
+    --pend-t: #6e5320;
+    --est-f: #efd9d3;
+    --est-t: #8c3b2e;
+    --neutro-f: #e3dccb;
+    --neutro-t: #4a524d;
+    /* O QR é sempre escuro sobre claro: leitor de QR não lê invertido */
+    --qr: #1f2a26;
+    --qr-fundo: #fbf8f1;
+
+    --serifa: 'Fraunces', Georgia, serif;
+    --texto: 'Inter', system-ui, sans-serif;
+    --curva: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --raio: 14px;
+    --raio-pilula: 999px;
+    color-scheme: light;
+}
+
+:root[data-tema='escuro'] {
+    --fundo: #0f1c18;
+    --cartao: #152620;
+    --tinta: #ece5d3;
+    --suave: #a9ad9f;
+    --marca: #d2ad62;
+    --numero: #ece5d3;
+    --latao: #d2ad62;
+    --entra: #8fcaa9;
+    --sai: #e39a86;
+    --risco: #24372f;
+    --botao: #d2ad62;
+    --botao-texto: #15201b;
+    --contorno: #d2ad62;
+    --foco: #d2ad62;
+    --sombra: 0 30px 60px -40px rgb(0 0 0 / 0.7);
+    --paga-f: #1f3a2f;
+    --paga-t: #8fcaa9;
+    --pend-f: #3a3220;
+    --pend-t: #e2c27e;
+    --est-f: #3d2621;
+    --est-t: #e39a86;
+    --neutro-f: #24372f;
+    --neutro-t: #b7b2a3;
+    --qr: #0f1c18;
+    --qr-fundo: #ece5d3;
+    color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--fundo);
+    color: var(--tinta);
+    font:
+        16px/1.6 var(--texto),
+        system-ui,
+        sans-serif;
+    transition:
+        background-color 0.5s var(--curva),
+        color 0.5s var(--curva);
+    -webkit-font-smoothing: antialiased;
+}
+
+a {
+    color: inherit;
+}
+
+h1,
+h2,
+h3 {
+    font-family: var(--serifa);
+    font-weight: 600;
+    color: var(--numero);
+    line-height: 1.15;
+    margin: 0;
+}
+
+:focus-visible {
+    outline: 2px solid var(--foco);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Valores em dinheiro: números de largura fixa, para a coluna não dançar */
+.numero {
+    font-variant-numeric: tabular-nums;
+}
+.numero-grande {
+    font: 600 clamp(32px, 6vw, 44px) / 1.1 var(--serifa);
+    color: var(--numero);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+.entra {
+    color: var(--entra);
+}
+.sai {
+    color: var(--sai);
+}
+.suave {
+    color: var(--suave);
+}
+
+.pagina {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 24px 24px 64px;
+}
+@media (max-width: 640px) {
+    .pagina {
+        padding: 16px 16px 48px;
+    }
+}
+
+.cartao {
+    background: var(--cartao);
+    border: 1px solid var(--risco);
+    border-radius: var(--raio);
+    padding: 20px;
+}
+
+/* Rótulo de seção: CAIXA ALTA pequena */
+.rotulo {
+    font: 600 12px/1.4 var(--texto);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--suave);
+    margin: 0 0 10px;
+}
+
+/* ---------- Botões ---------- */
+.botao {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 22px;
+    border-radius: var(--raio-pilula);
+    border: 0;
+    font: 600 15px/1.2 var(--texto);
+    text-decoration: none;
+    background: var(--botao);
+    color: var(--botao-texto);
+    cursor: pointer;
+    transition:
+        transform 0.3s var(--curva),
+        box-shadow 0.3s var(--curva),
+        opacity 0.2s;
+}
+.botao:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px -12px var(--marca);
+}
+.botao:active:not(:disabled) {
+    transform: translateY(0);
+}
+.botao:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+.botao.vazado {
+    background: transparent;
+    color: var(--contorno);
+    box-shadow: inset 0 0 0 1.5px var(--contorno);
+}
+.botao.perigo {
+    background: transparent;
+    color: var(--sai);
+    box-shadow: inset 0 0 0 1.5px var(--sai);
+}
+.botao.pequeno {
+    padding: 8px 14px;
+    font-size: 13px;
+}
+.botao .seta {
+    transition: transform 0.3s var(--curva);
+}
+.botao:hover .seta {
+    transform: translateX(3px);
+}
+.botao-icone {
+    width: 36px;
+    height: 36px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 50%;
+    border: 1px solid var(--risco);
+    background: transparent;
+    color: var(--marca);
+    cursor: pointer;
+    padding: 0;
+    transition:
+        transform 0.5s var(--curva),
+        border-color 0.3s;
+}
+.botao-icone:hover {
+    border-color: var(--marca);
+}
+.botao-icone svg {
+    width: 17px;
+    height: 17px;
+}
+
+/* ---------- Formulários ---------- */
+.campo {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+.campo label {
+    font-size: 14px;
+    font-weight: 500;
+}
+.campo input,
+.campo textarea,
+.campo select {
+    font: inherit;
+    color: var(--tinta);
+    background: var(--fundo);
+    border: 1px solid var(--risco);
+    border-radius: 10px;
+    padding: 11px 14px;
+    transition: border-color 0.2s;
+}
+.campo input:focus,
+.campo textarea:focus {
+    outline: none;
+    border-color: var(--marca);
+}
+.campo .dica {
+    font-size: 12px;
+    color: var(--suave);
+}
+.campo .erro-do-campo {
+    font-size: 13px;
+    color: var(--sai);
+}
+
+.alerta {
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 14px;
+    background: var(--est-f);
+    color: var(--est-t);
+    margin: 0 0 16px;
+}
+.alerta.ok {
+    background: var(--paga-f);
+    color: var(--paga-t);
+}
+
+/* ---------- Estado de cobrança e de aviso ---------- */
+.estado {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 2px 9px;
+    border-radius: var(--raio-pilula);
+    background: var(--neutro-f);
+    color: var(--neutro-t);
+    white-space: nowrap;
+    transition:
+        background-color 0.4s var(--curva),
+        color 0.4s var(--curva);
+}
+.estado.paga,
+.estado.entregue {
+    background: var(--paga-f);
+    color: var(--paga-t);
+}
+.estado.pendente {
+    background: var(--pend-f);
+    color: var(--pend-t);
+}
+.estado.parcialmente_estornada,
+.estado.estornada,
+.estado.falhou {
+    background: var(--est-f);
+    color: var(--est-t);
+}
+
+/* "ao vivo": o ponto pulsa devagar */
+.ao-vivo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--latao);
+}
+.ao-vivo::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: pulso 1.8s ease-in-out infinite;
+}
+@keyframes pulso {
+    50% {
+        opacity: 0.25;
+    }
+}
+
+/* ---------- Movimento: curto, uma vez, nada que fique se mexendo à toa ---------- */
+
+/* Aparecer ao rolar (useRevelar): sobe 12 px e surge */
+.revelar {
+    opacity: 0;
+    transform: translateY(12px);
+    transition:
+        opacity 0.7s var(--curva),
+        transform 0.7s var(--curva);
+}
+.revelar.revelado {
+    opacity: 1;
+    transform: none;
+}
+
+/* Entrada de uma lista ou de uma tela: cada filho com um pequeno atraso (--i no style) */
+.entrar {
+    animation: entrar 0.6s var(--curva) both;
+    animation-delay: calc(var(--i, 0) * 60ms);
+}
+@keyframes entrar {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+}
+
+/* Algo acabou de mudar ao vivo (saldo, estado): um brilho de latão que some */
+.mudou {
+    animation: mudou 1.4s var(--curva);
+}
+@keyframes mudou {
+    0% {
+        background-color: color-mix(in srgb, var(--latao) 22%, transparent);
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+/* Esqueleto enquanto carrega */
+.esqueleto {
+    border-radius: 8px;
+    background: linear-gradient(
+        90deg,
+        var(--risco) 0%,
+        var(--cartao) 50%,
+        var(--risco) 100%
+    );
+    background-size: 200% 100%;
+    animation: esqueleto 1.4s ease-in-out infinite;
+    min-height: 1em;
+}
+@keyframes esqueleto {
+    to {
+        background-position: -200% 0;
+    }
+}
+
+/* Quem pediu menos movimento no sistema: nada se mexe, tudo aparece */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    .revelar {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+.so-leitor {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* QR que se desenha: os módulos surgem em diagonal (o atraso de cada um vem do componente) */
+.qr-desenhar rect + rect {
+    animation: modulo 0.35s var(--curva) both;
+}
+@keyframes modulo {
+    from {
+        opacity: 0;
+    }
+}
+
+/* ---------- Topo do site ---------- */
+.topo {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+@media (max-width: 640px) {
+    .topo {
+        padding: 14px 16px;
+    }
+}
+.marca {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font: 600 24px/1 var(--serifa);
+    color: var(--marca);
+    text-decoration: none;
+}
+.marca svg {
+    width: 30px;
+    height: 30px;
+}
+.topo nav {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 14px;
+}
+.topo nav a {
+    text-decoration: none;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+.topo nav a:hover,
+.topo nav a[aria-current='page'] {
+    opacity: 1;
+}
+.topo nav a[aria-current='page'] {
+    text-decoration: underline;
+    text-decoration-color: var(--latao);
+    text-underline-offset: 6px;
+    text-decoration-thickness: 2px;
+}
+.topo .sair {
+    background: none;
+    border: 0;
+    font: inherit;
+    color: inherit;
+    opacity: 0.8;
+    cursor: pointer;
+    padding: 0;
+}
+@media (max-width: 640px) {
+    .topo nav {
+        gap: 14px;
+    }
+    .topo nav .some-no-celular {
+        display: none;
+    }
+}

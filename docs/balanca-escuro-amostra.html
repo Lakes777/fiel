@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fiel · Balança no escuro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --pagina: #ecebe8; --texto: #1d1d1f; --suave: #5f5f66; --linha: #d4d3cf; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--pagina); color: var(--texto); font: 15px/1.5 Inter, system-ui, sans-serif; }
+  .topo { max-width: 1180px; margin: 0 auto; padding: 32px 16px 8px; }
+  .topo h1 { margin: 0 0 4px; font-size: 22px; }
+  .topo p { margin: 0; color: var(--suave); max-width: 75ch; }
+  .atalhos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .atalhos a { padding: 6px 12px; border: 1px solid var(--linha); border-radius: 999px; color: var(--texto); text-decoration: none; background: #fff; font-size: 14px; }
+  section.opcao { max-width: 1180px; margin: 40px auto; padding: 0 16px; }
+  .rotulo { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .rotulo h2 { margin: 0; font-size: 18px; }
+  .rotulo span { color: var(--suave); font-size: 14px; }
+  .ideia { margin: 0 0 10px; color: var(--suave); font-size: 14px; max-width: 90ch; }
+  .ficha { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; padding: 0; list-style: none; font-size: 13px; color: var(--suave); }
+  .ficha li { display: flex; align-items: center; gap: 6px; background: #fff; border: 1px solid var(--linha); border-radius: 6px; padding: 3px 8px; }
+  .ficha i { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(0,0,0,.15); display: inline-block; }
+  .telas { display: grid; grid-template-columns: 1fr 1.25fr; gap: 16px; }
+  @media (max-width: 900px) { .telas { grid-template-columns: 1fr; } }
+  .tela { border-radius: 14px; overflow: hidden; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.08); }
+  .legenda { font-size: 12px; color: var(--suave); margin: 6px 2px 0; }
+  .simular { margin-top: 12px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--linha); background: #fff; font: inherit; font-size: 14px; cursor: pointer; }
+
+  /* ---------- Estrutura comum das telas ---------- */
+  .app { padding: 18px; min-height: 100%; }
+  .barra { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .marca { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+  .marca svg { width: 28px; height: 28px; flex: none; }
+  .quem { font-size: 13px; opacity: .75; }
+  .vivo { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+  .vivo::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pulso 1.6s ease-in-out infinite; }
+  @keyframes pulso { 50% { opacity: .25; } }
+  .saldo-rotulo { font-size: 13px; opacity: .75; }
+  .saldo { font-size: 38px; line-height: 1.1; margin: 2px 0 10px; font-variant-numeric: tabular-nums; }
+  .limites { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; margin-bottom: 14px; }
+  .limite b { display: block; font-weight: 600; font-size: 13px; }
+  .trilho { height: 5px; border-radius: 3px; margin-top: 4px; overflow: hidden; }
+  .trilho span { display: block; height: 100%; }
+  .acoes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+  .acoes button { font: inherit; font-size: 13px; padding: 10px 6px; cursor: default; }
+  h3 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; opacity: .7; }
+  ul.extrato { list-style: none; margin: 0; padding: 0; }
+  .mov { display: grid; grid-template-columns: 1fr auto; gap: 0 12px; padding: 9px 0; }
+  .mov .desc { font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mov .quando { font-size: 12px; opacity: .6; grid-column: 1; }
+  .mov .val { white-space: nowrap; grid-row: 1 / span 2; grid-column: 2; align-self: center; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .mov .saldo-depois { display: none; }
+  .mov.novo { animation: chega 1.4s ease-out; }
+  @keyframes chega { from { transform: translateY(-6px); opacity: 0; } 30% { opacity: 1; } }
+
+  .resumo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  .resumo div { padding: 10px; }
+  .resumo b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .resumo small { font-size: 12px; opacity: .7; }
+  .painel { display: grid; grid-template-columns: 1.15fr .85fr; gap: 14px; }
+  @media (max-width: 560px) { .painel { grid-template-columns: 1fr; } }
+  table.cobrancas { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .cobrancas td { padding: 8px 4px; vertical-align: middle; }
+  .cobrancas td.v { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .cobrancas tr.ativa td { font-weight: 600; }
+  .estado { display: inline-block; font-size: 11px; padding: 2px 7px; white-space: nowrap; }
+  .detalhe { padding: 12px; }
+  .detalhe .qr { width: 132px; height: 132px; display: block; margin: 6px auto 10px; }
+  .detalhe .linha { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; padding: 3px 0; }
+  .detalhe .linha b { white-space: nowrap; }
+  .detalhe button { width: 100%; margin-top: 10px; font: inherit; font-size: 13px; padding: 8px; cursor: default; }
+  .rodape { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; font-size: 12px; }
+  .rodape div { padding: 10px; }
+  .rodape b { display: block; font-size: 13px; }
+  .pisca { animation: pisca 1.6s ease-out; }
+  @keyframes pisca { 0%, 40% { filter: brightness(1.25); transform: scale(1.04); } }
+
+
+  /* ---------- Balança: tudo por variável, para o escuro só trocar os valores ---------- */
+  .a { --fundo: #f4efe4; --cartao: #fbf8f1; --tinta: #1f2a26; --marca: #1f4d3f; --numero: #1f4d3f;
+       --entra: #1f4d3f; --sai: #8c3b2e; --latao: #a9823d; --risco: #e3dccb;
+       --botao: #1f4d3f; --botao-texto: #f4efe4; --contorno: #1f4d3f;
+       --paga-f: #d6e4dc; --paga-t: #1f4d3f; --pend-f: #f0e2c4; --pend-t: #6e5320; --est-f: #efd9d3; --est-t: #8c3b2e;
+       --neutro-f: #e3dccb; --neutro-t: #1f2a26; --qr: #1f4d3f; --qr-fundo: transparent;
+       background: var(--fundo); color: var(--tinta); font-family: Inter, sans-serif; transition: background .4s, color .4s; }
+  .a .marca { font-family: Fraunces, serif; font-size: 22px; font-weight: 600; color: var(--marca); }
+  .a .direita { display: flex; align-items: center; gap: 12px; }
+  .a .troca { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--risco); color: var(--marca); }
+  .a .troca svg { width: 16px; height: 16px; }
+  .a .vivo { color: var(--latao); }
+  .a .saldo { font-family: Fraunces, serif; font-weight: 600; color: var(--numero); }
+  .a .trilho { background: var(--risco); } .a .trilho span { background: var(--latao); }
+  .a .acoes button { background: var(--botao); color: var(--botao-texto); border: 0; border-radius: 999px; }
+  .a .acoes button + button { background: transparent; color: var(--contorno); box-shadow: inset 0 0 0 1.5px var(--contorno); }
+  .a .mov + .mov { border-top: 1px solid var(--risco); }
+  .a .mov.sai .val { color: var(--sai); } .a .mov.entra .val { color: var(--entra); }
+  .a .resumo div, .a .detalhe, .a .rodape div { background: var(--cartao); border: 1px solid var(--risco); border-radius: 12px; }
+  .a .resumo b { font-family: Fraunces, serif; color: var(--numero); }
+  .a .cobrancas tr + tr td { border-top: 1px solid var(--risco); }
+  .a .estado { border-radius: 999px; background: var(--neutro-f); color: var(--neutro-t); }
+  .a .estado.paga { background: var(--paga-f); color: var(--paga-t); }
+  .a .estado.pendente { background: var(--pend-f); color: var(--pend-t); }
+  .a .estado.parcialmente_estornada, .a .estado.estornada { background: var(--est-f); color: var(--est-t); }
+  .a .detalhe .qr { color: var(--qr); background: var(--qr-fundo); border-radius: 8px; padding: 6px; }
+  .a .detalhe button { background: transparent; border: 1.5px solid var(--sai); color: var(--sai); border-radius: 999px; }
+
+  /* E1 · Verde-garrafa */
+  .a.e1 { --fundo: #0f1c18; --cartao: #152620; --tinta: #ece5d3; --marca: #d2ad62; --numero: #ece5d3;
+          --entra: #8fcaa9; --sai: #e39a86; --latao: #d2ad62; --risco: #24372f;
+          --botao: #d2ad62; --botao-texto: #15201b; --contorno: #d2ad62;
+          --paga-f: #1f3a2f; --paga-t: #8fcaa9; --pend-f: #3a3220; --pend-t: #e2c27e; --est-f: #3d2621; --est-t: #e39a86;
+          --neutro-f: #24372f; --neutro-t: #b7b2a3; --qr: #0f1c18; --qr-fundo: #ece5d3; }
+  /* E2 · Grafite e latão */
+  .a.e2 { --fundo: #141414; --cartao: #1c1c1b; --tinta: #e8e4da; --marca: #c9a35c; --numero: #f1ece0;
+          --entra: #7dbb9c; --sai: #df9282; --latao: #c9a35c; --risco: #2b2a28;
+          --botao: #e8e4da; --botao-texto: #141414; --contorno: #c9a35c;
+          --paga-f: #1f2d26; --paga-t: #7dbb9c; --pend-f: #332c1d; --pend-t: #dcbd7c; --est-f: #36231f; --est-t: #df9282;
+          --neutro-f: #2b2a28; --neutro-t: #a9a59b; --qr: #141414; --qr-fundo: #e8e4da; }
+  /* E3 · Couro */
+  .a.e3 { --fundo: #16110c; --cartao: #201912; --tinta: #efe5d1; --marca: #d9ae5f; --numero: #f3e7cd;
+          --entra: #9cc7a3; --sai: #e69a7f; --latao: #d9ae5f; --risco: #33281d;
+          --botao: #d9ae5f; --botao-texto: #1b140d; --contorno: #d9ae5f;
+          --paga-f: #24301f; --paga-t: #9cc7a3; --pend-f: #3b2e1a; --pend-t: #e8c37a; --est-f: #3d241a; --est-t: #e69a7f;
+          --neutro-f: #33281d; --neutro-t: #b8a993; --qr: #16110c; --qr-fundo: #efe5d1; }
+  /* E4 · Verde no escuro */
+  .a.e4 { --fundo: #101413; --cartao: #171d1b; --tinta: #e3e8e4; --marca: #7fc4a4; --numero: #e3e8e4;
+          --entra: #7fc4a4; --sai: #e3928a; --latao: #c8a35e; --risco: #252d2a;
+          --botao: #7fc4a4; --botao-texto: #0d1a14; --contorno: #7fc4a4;
+          --paga-f: #1b3027; --paga-t: #7fc4a4; --pend-f: #312b1c; --pend-t: #d8ba7a; --est-f: #352220; --est-t: #e3928a;
+          --neutro-f: #252d2a; --neutro-t: #a3aca7; --qr: #101413; --qr-fundo: #e3e8e4; }
+  .alternar { margin-left: 6px; }
+</style>
+</head>
+<body>
+
+<header class="topo">
+  <h1>Fiel · Balança no escuro: quatro opções</h1>
+  <p>O claro fica como está (logo abaixo, para comparar). Cada opção de escuro tem o botão "Ver no claro", que troca
+    o tema na hora, como o botão da lua no topo vai fazer no site. As cores de estado (paga, pendente, estornada) e
+    de entrada/saída foram ajustadas em cada uma para continuarem legíveis no escuro.</p>
+  <nav class="atalhos"><a href="#claro">Claro (definido)</a><a href="#e1">E1 · Verde-garrafa</a><a href="#e2">E2 · Grafite e latão</a><a href="#e3">E3 · Couro</a><a href="#e4">E4 · Verde no escuro</a></nav>
+</header>
+<section class="opcao" id="claro">
+  <div class="rotulo"><h2>Claro (definido)</h2><span>marfim, verde-garrafa e latão</span></div>
+  <p class="ideia">Referência: é a A que você escolheu, sem mudança.</p>
+  <ul class="ficha"><li><i style="background:#f4efe4"></i>marfim</li><li><i style="background:#1f4d3f"></i>verde-garrafa</li><li><i style="background:#a9823d"></i>latão</li><li><i style="background:#8c3b2e"></i>saída</li></ul>
+  <div class="telas" data-variante="claro"></div>
+  <button class="simular" data-para="claro">Simular pagamento</button>
+</section>
+<section class="opcao" id="e1">
+  <div class="rotulo"><h2>E1 · Verde-garrafa</h2><span>o verde da marca vira o fundo</span></div>
+  <p class="ideia">A mais fiel à identidade: o fundo é o próprio verde-garrafa, quase preto, e o latão passa a ser a cor dos botões e do logo. O texto continua cor de marfim. A troca de tema parece a mesma marca com a luz apagada.</p>
+  <ul class="ficha"><li><i style="background:#0f1c18"></i>verde-garrafa</li><li><i style="background:#152620"></i>cartão</li><li><i style="background:#d2ad62"></i>latão</li><li><i style="background:#ece5d3"></i>marfim</li><li><i style="background:#8fcaa9"></i>entrada</li></ul>
+  <div class="telas" data-variante="e1"></div>
+  <button class="simular" data-para="e1">Simular pagamento</button> <button class="simular alternar" data-para="e1">Ver no claro</button>
+</section>
+<section class="opcao" id="e2">
+  <div class="rotulo"><h2>E2 · Grafite e latão</h2><span>neutro, o mais sóbrio</span></div>
+  <p class="ideia">Grafite sem tom nenhum, botão principal cor de marfim e latão só no logo e nos detalhes. O verde aparece só no dinheiro que entra. É a mais perto do seu visual sóbrio.</p>
+  <ul class="ficha"><li><i style="background:#141414"></i>grafite</li><li><i style="background:#1c1c1b"></i>cartão</li><li><i style="background:#c9a35c"></i>latão</li><li><i style="background:#e8e4da"></i>marfim</li><li><i style="background:#7dbb9c"></i>entrada</li></ul>
+  <div class="telas" data-variante="e2"></div>
+  <button class="simular" data-para="e2">Simular pagamento</button> <button class="simular alternar" data-para="e2">Ver no claro</button>
+</section>
+<section class="opcao" id="e3">
+  <div class="rotulo"><h2>E3 · Couro</h2><span>marrom quase preto, de escritório antigo</span></div>
+  <p class="ideia">Fundo marrom-escuro quente, latão mais dourado. Combina com a serifa e com a ideia de instrumento antigo; é a mais aconchegante. O risco: marrom pode parecer sujo em tela ruim.</p>
+  <ul class="ficha"><li><i style="background:#16110c"></i>couro</li><li><i style="background:#201912"></i>cartão</li><li><i style="background:#d9ae5f"></i>latão</li><li><i style="background:#efe5d1"></i>marfim</li><li><i style="background:#9cc7a3"></i>entrada</li></ul>
+  <div class="telas" data-variante="e3"></div>
+  <button class="simular" data-para="e3">Simular pagamento</button> <button class="simular alternar" data-para="e3">Ver no claro</button>
+</section>
+<section class="opcao" id="e4">
+  <div class="rotulo"><h2>E4 · Verde no escuro</h2><span>grafite com o verde da marca como destaque</span></div>
+  <p class="ideia">Grafite levemente esverdeado e o verde-garrafa clareado como cor principal (botões, logo). O latão fica só no ao vivo e nas barras de limite. Mais cara de aplicativo, menos de instrumento.</p>
+  <ul class="ficha"><li><i style="background:#101413"></i>grafite</li><li><i style="background:#171d1b"></i>cartão</li><li><i style="background:#7fc4a4"></i>verde</li><li><i style="background:#c8a35e"></i>latão</li><li><i style="background:#e3928a"></i>saída</li></ul>
+  <div class="telas" data-variante="e4"></div>
+  <button class="simular" data-para="e4">Simular pagamento</button> <button class="simular alternar" data-para="e4">Ver no claro</button>
+</section>
+<script>
+const LOGOS = {
+  a: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M16 4v22M9 27h14M6 9h20"/><path d="M6 9l-4 9h8zM26 9l-4 9h8z" stroke-linejoin="round"/><circle cx="16" cy="5" r="1.6" fill="currentColor"/></svg>',
+  b: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="24" height="24" rx="1"/><path d="M4 9h24M4 10.8h24M16 10.8V28"/><path d="M8 16h5M19 16h5M8 21h5M19 21h5"/></svg>',
+  c: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="24" height="22" rx="5"/><circle cx="16" cy="16" r="5"/><path d="M16 11v-1M16 22v-1M11 16h-1M22 16h-1"/></svg>',
+  d: '<svg viewBox="0 0 32 32" fill="currentColor"><rect x="5" y="6" width="2" height="20"/><rect x="9" y="6" width="1" height="20"/><rect x="12" y="6" width="3" height="20"/><rect x="17" y="6" width="1" height="20"/><rect x="20" y="6" width="2" height="20"/><rect x="24" y="6" width="1" height="20"/><rect x="26" y="6" width="2" height="20"/></svg>',
+};
+
+const TROCA = '<span class="troca" title="claro / escuro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg></span>';
+const reais = c => (c < 0 ? '−' : '') + 'R$ ' + (Math.abs(c) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+const sinal = c => (c > 0 ? '+' : '') + reais(c);
+
+const EXTRATO = [
+  { desc: 'Estorno de Bob L. a Ana S.: Camiseta preta', quando: 'hoje, 14:32', valor: 2550 },
+  { desc: 'Pagamento de Ana S. a Bob L.: Camiseta preta', quando: 'hoje, 14:05', valor: -2550 },
+  { desc: 'Transferência de Ana S. para Carla M.', quando: 'ontem, 21:10', valor: -15000 },
+  { desc: 'Transferência de Davi R. para Ana S.', quando: 'ontem, 09:47', valor: 40000 },
+  { desc: 'Bônus de boas-vindas', quando: '15/10, 18:02', valor: 100000 },
+];
+const COBRANCAS = [
+  { id: 132, desc: 'Caneca esmaltada', valor: 3400, estado: 'pendente', quando: 'expira em 12 min' },
+  { id: 131, desc: 'Boné preto', valor: 5990, estado: 'paga', quando: '14:20' },
+  { id: 129, desc: 'Moletom cinza', valor: 18900, estado: 'parcialmente_estornada', quando: 'R$ 40,00 devolvidos' },
+  { id: 128, desc: 'Camiseta preta', valor: 2550, estado: 'estornada', quando: '14:32' },
+  { id: 127, desc: 'Adesivos', valor: 800, estado: 'expirada', quando: '11:05' },
+  { id: 126, desc: 'Chaveiro', valor: 1200, estado: 'cancelada', quando: '10:40' },
+];
+const NOME_ESTADO = { pendente: 'pendente', paga: 'paga', parcialmente_estornada: 'estornada em parte', estornada: 'estornada', expirada: 'expirada', cancelada: 'cancelada' };
+
+// Um QR de mentira com os três quadrados de canto, sempre igual (semente fixa)
+function qr() {
+  const n = 25, celula = 4;
+  let semente = 7, partes = '';
+  const acaso = () => (semente = (semente * 16807) % 2147483647) / 2147483647;
+  const noCanto = (i, j) => [[0, 0], [18, 0], [0, 18]].some(([x, y]) => i >= x && i < x + 7 && j >= y && j < y + 7);
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+    if (noCanto(i, j)) continue;
+    if (acaso() < 0.47) partes += `<rect x="${i * celula}" y="${j * celula}" width="${celula}" height="${celula}"/>`;
+  }
+  for (const [x, y] of [[0, 0], [18, 0], [0, 18]]) {
+    partes += `<rect x="${x * celula + 2}" y="${y * celula + 2}" width="24" height="24" fill="none" stroke="currentColor" stroke-width="4"/>`;
+    partes += `<rect x="${x * celula + 8}" y="${y * celula + 8}" width="12" height="12"/>`;
+  }
+  return `<svg class="qr" viewBox="0 0 ${n * celula} ${n * celula}" fill="currentColor" shape-rendering="crispEdges">${partes}</svg>`;
+}
+
+function movimento(m, saldoDepois, novo) {
+  return `<li class="mov ${m.valor > 0 ? 'entra' : 'sai'}${novo ? ' novo' : ''}">
+    <span class="desc">${m.desc}</span><span class="quando">${m.quando}</span>
+    <span class="val">${sinal(m.valor)}</span><span class="saldo-depois">${reais(saldoDepois)}</span></li>`;
+}
+
+function carteira(tema, estado) {
+  const extrato = estado.pagou
+    ? [{ desc: 'Pagamento de Ana S. a Bob L.: Caneca esmaltada', quando: 'agora', valor: -3400 }, ...EXTRATO]
+    : EXTRATO;
+  let saldo = 125000 + (estado.pagou ? -3400 : 0);
+  const saldos = extrato.map(m => { const s = saldo; saldo -= m.valor; return s; });
+  const atual = saldos[0];
+  const hoje = 2550 + (estado.pagou ? 3400 : 0);
+  const bloco = tema === 'd' ? ['<div class="bloco">', '</div>'] : ['', ''];
+  return `<div class="app">
+    ${bloco[0]}
+    <div class="barra"><div class="marca">${LOGOS[tema]}<span>${tema === 'b' ? 'FIEL' : tema === 'd' ? 'FIEL' : 'Fiel'}</span></div><span class="direita"><span class="vivo">ao vivo</span>${TROCA}</span></div>
+    <div class="saldo-rotulo">Saldo da carteira · Ana Souza</div>
+    <div class="saldo ${estado.pagou ? 'pisca' : ''}">${reais(atual)}</div>
+    <div class="limites">
+      <div class="limite"><b>${reais(500000 - hoje)}</b>livres hoje, de R$ 5.000,00<div class="trilho"><span style="width:${hoje / 5000}%"></span></div></div>
+      <div class="limite"><b>R$ 1.000,00</b>livres à noite (20h–6h)<div class="trilho"><span style="width:0%"></span></div></div>
+    </div>
+    ${bloco[1]}
+    <div class="acoes"><button>Transferir</button><button>Pagar QR</button><button>Cobrar</button></div>
+    ${bloco[0]}
+    <h3>Extrato</h3>
+    ${tema === 'b' ? '<div class="cabeca-razao"><span>Histórico</span><span>Valor</span><span>Saldo</span></div>' : ''}
+    <ul class="extrato">${extrato.map((m, i) => movimento(m, saldos[i], estado.pagou && i === 0)).join('')}</ul>
+    ${bloco[1]}
+  </div>`;
+}
+
+function painel(tema, estado) {
+  const cobrancas = COBRANCAS.map(c => c.id === 132 && estado.pagou ? { ...c, estado: 'paga', quando: 'agora' } : c);
+  const recebido = 41200 + (estado.pagou ? 3400 : 0);
+  const caneca = cobrancas[0];
+  const bloco = tema === 'd' ? ['<div class="bloco">', '</div>'] : ['', ''];
+  return `<div class="app">
+    ${bloco[0]}
+    <div class="barra"><div class="marca">${LOGOS[tema]}<span>${tema === 'b' || tema === 'd' ? 'FIEL' : 'Fiel'}</span></div><span class="direita"><span class="quem">Loja do Bob · Bob Lima</span>${TROCA}</span></div>
+    <div class="resumo">
+      <div><b class="${estado.pagou ? 'pisca' : ''}">${reais(recebido)}</b><small>recebido hoje</small></div>
+      <div><b>${estado.pagou ? 10 : 9}</b><small>cobranças pagas</small></div>
+      <div><b>R$ 65,50</b><small>devolvido hoje</small></div>
+    </div>
+    ${bloco[1]}
+    <div class="painel">
+      <div>${bloco[0]}
+        <h3>Cobranças</h3>
+        <table class="cobrancas"><tbody>${cobrancas.map(c => `
+          <tr class="${c.id === 132 ? 'ativa' : ''}"><td>#${c.id}</td><td>${c.desc}<br><small style="opacity:.6;font-weight:400">${c.quando}</small></td>
+          <td><span class="estado ${c.estado} ${c.id === 132 && estado.pagou ? 'pisca' : ''}">${NOME_ESTADO[c.estado]}</span></td><td class="v">${reais(c.valor)}</td></tr>`).join('')}
+        </tbody></table>${bloco[1]}
+      </div>
+      <div class="detalhe ${tema === 'd' ? 'bloco' : ''}">
+        <h3>Cobrança #132</h3>
+        ${qr()}
+        <div class="linha"><span>Caneca esmaltada</span><b>${reais(3400)}</b></div>
+        <div class="linha"><span>Estado</span><span class="estado ${caneca.estado}">${NOME_ESTADO[caneca.estado]}</span></div>
+        <div class="linha"><span>${estado.pagou ? 'Paga por' : 'Vale até'}</span><span>${estado.pagou ? 'Ana S., agora' : '15:12'}</span></div>
+        <button>${estado.pagou ? 'Estornar' : 'Cancelar cobrança'}</button>
+      </div>
+    </div>
+    <div class="rodape">
+      <div${tema === 'd' ? ' class="bloco"' : ''}><b>Avisos (webhook)</b>loja-do-bob.com/fiel<br>${estado.pagou ? 15 : 14} entregues · 1 na fila de falhas</div>
+      <div${tema === 'd' ? ' class="bloco"' : ''}><b>Conciliação</b>hoje às 03:00<br>tudo fecha · 1.284 lançamentos</div>
+    </div>
+  </div>`;
+}
+
+const estados = {};
+function desenhar(v) {
+  const alvo = document.querySelector(`.telas[data-variante="${v}"]`);
+  const e = estados[v] ||= { pagou: false, claro: v === 'claro' };
+  const classe = e.claro ? 'a' : `a escuro ${v}`;
+  alvo.innerHTML = `<div><div class="tela ${classe}">${carteira('a', e)}</div><p class="legenda">Carteira</p></div>
+                    <div><div class="tela ${classe}">${painel('a', e)}</div><p class="legenda">Painel do lojista</p></div>`;
+}
+document.querySelectorAll('.simular:not(.alternar)').forEach(botao => botao.addEventListener('click', () => {
+  const v = botao.dataset.para;
+  estados[v].pagou = !estados[v].pagou;
+  botao.textContent = estados[v].pagou ? 'Voltar ao início' : 'Simular pagamento';
+  desenhar(v);
+}));
+document.querySelectorAll('.alternar').forEach(botao => botao.addEventListener('click', () => {
+  const v = botao.dataset.para;
+  estados[v].claro = !estados[v].claro;
+  botao.textContent = estados[v].claro ? 'Ver no escuro' : 'Ver no claro';
+  desenhar(v);
+}));
+['claro', 'e1', 'e2', 'e3', 'e4'].forEach(desenhar);
+</script>
+</body>
+</html>

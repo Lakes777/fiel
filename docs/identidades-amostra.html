@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fiel · identidades</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:wght@400;600&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --pagina: #ecebe8; --texto: #1d1d1f; --suave: #5f5f66; --linha: #d4d3cf; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--pagina); color: var(--texto); font: 15px/1.5 Inter, system-ui, sans-serif; }
+  .topo { max-width: 1180px; margin: 0 auto; padding: 32px 16px 8px; }
+  .topo h1 { margin: 0 0 4px; font-size: 22px; }
+  .topo p { margin: 0; color: var(--suave); max-width: 75ch; }
+  .atalhos { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .atalhos a { padding: 6px 12px; border: 1px solid var(--linha); border-radius: 999px; color: var(--texto); text-decoration: none; background: #fff; font-size: 14px; }
+  section.opcao { max-width: 1180px; margin: 40px auto; padding: 0 16px; }
+  .rotulo { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .rotulo h2 { margin: 0; font-size: 18px; }
+  .rotulo span { color: var(--suave); font-size: 14px; }
+  .ideia { margin: 0 0 10px; color: var(--suave); font-size: 14px; max-width: 90ch; }
+  .ficha { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; padding: 0; list-style: none; font-size: 13px; color: var(--suave); }
+  .ficha li { display: flex; align-items: center; gap: 6px; background: #fff; border: 1px solid var(--linha); border-radius: 6px; padding: 3px 8px; }
+  .ficha i { width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgba(0,0,0,.15); display: inline-block; }
+  .telas { display: grid; grid-template-columns: 1fr 1.25fr; gap: 16px; }
+  @media (max-width: 900px) { .telas { grid-template-columns: 1fr; } }
+  .tela { border-radius: 14px; overflow: hidden; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.08); }
+  .legenda { font-size: 12px; color: var(--suave); margin: 6px 2px 0; }
+  .simular { margin-top: 12px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--linha); background: #fff; font: inherit; font-size: 14px; cursor: pointer; }
+
+  /* ---------- Estrutura comum das telas ---------- */
+  .app { padding: 18px; min-height: 100%; }
+  .barra { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .marca { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+  .marca svg { width: 28px; height: 28px; flex: none; }
+  .quem { font-size: 13px; opacity: .75; }
+  .vivo { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+  .vivo::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pulso 1.6s ease-in-out infinite; }
+  @keyframes pulso { 50% { opacity: .25; } }
+  .saldo-rotulo { font-size: 13px; opacity: .75; }
+  .saldo { font-size: 38px; line-height: 1.1; margin: 2px 0 10px; font-variant-numeric: tabular-nums; }
+  .limites { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; margin-bottom: 14px; }
+  .limite b { display: block; font-weight: 600; font-size: 13px; }
+  .trilho { height: 5px; border-radius: 3px; margin-top: 4px; overflow: hidden; }
+  .trilho span { display: block; height: 100%; }
+  .acoes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+  .acoes button { font: inherit; font-size: 13px; padding: 10px 6px; cursor: default; }
+  h3 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; opacity: .7; }
+  ul.extrato { list-style: none; margin: 0; padding: 0; }
+  .mov { display: grid; grid-template-columns: 1fr auto; gap: 0 12px; padding: 9px 0; }
+  .mov .desc { font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .mov .quando { font-size: 12px; opacity: .6; grid-column: 1; }
+  .mov .val { white-space: nowrap; grid-row: 1 / span 2; grid-column: 2; align-self: center; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .mov .saldo-depois { display: none; }
+  .mov.novo { animation: chega 1.4s ease-out; }
+  @keyframes chega { from { transform: translateY(-6px); opacity: 0; } 30% { opacity: 1; } }
+
+  .resumo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+  .resumo div { padding: 10px; }
+  .resumo b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .resumo small { font-size: 12px; opacity: .7; }
+  .painel { display: grid; grid-template-columns: 1.15fr .85fr; gap: 14px; }
+  @media (max-width: 560px) { .painel { grid-template-columns: 1fr; } }
+  table.cobrancas { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .cobrancas td { padding: 8px 4px; vertical-align: middle; }
+  .cobrancas td.v { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .cobrancas tr.ativa td { font-weight: 600; }
+  .estado { display: inline-block; font-size: 11px; padding: 2px 7px; white-space: nowrap; }
+  .detalhe { padding: 12px; }
+  .detalhe .qr { width: 132px; height: 132px; display: block; margin: 6px auto 10px; }
+  .detalhe .linha { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; padding: 3px 0; }
+  .detalhe .linha b { white-space: nowrap; }
+  .detalhe button { width: 100%; margin-top: 10px; font: inherit; font-size: 13px; padding: 8px; cursor: default; }
+  .rodape { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; font-size: 12px; }
+  .rodape div { padding: 10px; }
+  .rodape b { display: block; font-size: 13px; }
+  .pisca { animation: pisca 1.6s ease-out; }
+  @keyframes pisca { 0%, 40% { filter: brightness(1.25); transform: scale(1.04); } }
+
+  /* ---------- A · Balança ---------- */
+  .a { --fundo: #f4efe4; --cartao: #fbf8f1; --tinta: #1f2a26; --verde: #1f4d3f; --latao: #a9823d; --sai: #8c3b2e; --risco: #e3dccb;
+       background: var(--fundo); color: var(--tinta); font-family: Inter, sans-serif; }
+  .a .marca { font-family: Fraunces, serif; font-size: 22px; font-weight: 600; letter-spacing: .01em; color: var(--verde); }
+  .a .vivo { color: var(--latao); }
+  .a .saldo { font-family: Fraunces, serif; font-weight: 600; color: var(--verde); }
+  .a .trilho { background: var(--risco); } .a .trilho span { background: var(--latao); }
+  .a .acoes button { background: var(--verde); color: #f4efe4; border: 0; border-radius: 999px; }
+  .a .acoes button + button { background: transparent; color: var(--verde); box-shadow: inset 0 0 0 1.5px var(--verde); }
+  .a .mov + .mov { border-top: 1px solid var(--risco); }
+  .a .mov.sai .val { color: var(--sai); } .a .mov.entra .val { color: var(--verde); }
+  .a .resumo div, .a .detalhe, .a .rodape div { background: var(--cartao); border: 1px solid var(--risco); border-radius: 12px; }
+  .a .resumo b { font-family: Fraunces, serif; color: var(--verde); }
+  .a .cobrancas tr + tr td { border-top: 1px solid var(--risco); }
+  .a .estado { border-radius: 999px; background: var(--risco); }
+  .a .estado.paga { background: #d6e4dc; color: var(--verde); }
+  .a .estado.pendente { background: #f0e2c4; color: #6e5320; }
+  .a .estado.parcialmente_estornada, .a .estado.estornada { background: #efd9d3; color: var(--sai); }
+  .a .detalhe .qr { color: var(--verde); }
+  .a .detalhe button { background: transparent; border: 1.5px solid var(--sai); color: var(--sai); border-radius: 999px; }
+
+  /* ---------- B · Razão ---------- */
+  .b { --papel: #f6f4ea; --pauta: #d5e3dc; --margem: #d99a8f; --verde: #24594b; --tinta: #23302c; --vermelho: #a3312a;
+       background: var(--papel); color: var(--tinta); font-family: "Source Serif 4", serif; }
+  .b .app { background-image: linear-gradient(to right, transparent 30px, var(--margem) 30px, var(--margem) 31px, transparent 31px),
+                              repeating-linear-gradient(to bottom, transparent 0 27px, var(--pauta) 27px 28px); padding-left: 44px; }
+  .b .marca { font-family: "IBM Plex Mono", monospace; font-size: 18px; color: var(--verde); letter-spacing: .12em; }
+  .b .vivo { color: var(--vermelho); font-family: "IBM Plex Mono", monospace; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+  .b .saldo { font-family: "IBM Plex Mono", monospace; font-weight: 600; color: var(--verde); border-bottom: 3px double var(--verde); display: inline-block; padding-bottom: 2px; }
+  .b .trilho { background: var(--pauta); border-radius: 0; } .b .trilho span { background: var(--verde); }
+  .b .acoes button { background: transparent; border: 1px solid var(--verde); color: var(--verde); font-family: "IBM Plex Mono", monospace; text-transform: uppercase; letter-spacing: .06em; font-size: 11px; border-radius: 2px; }
+  .b h3 { font-family: "IBM Plex Mono", monospace; color: var(--verde); opacity: 1; }
+  .b .mov { grid-template-columns: 1fr 104px 92px; border-bottom: 1px solid var(--pauta); }
+  .b .mov .val { grid-column: 2; font-family: "IBM Plex Mono", monospace; font-size: 13px; text-align: right; }
+  .b .mov.sai .val { color: var(--vermelho); }
+  .b .mov .saldo-depois { display: block; grid-column: 3; grid-row: 1 / span 2; align-self: center; text-align: right; font-family: "IBM Plex Mono", monospace; font-size: 13px; opacity: .7; }
+  .b .cabeca-razao { display: grid; grid-template-columns: 1fr 104px 92px; font-family: "IBM Plex Mono", monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; opacity: .6; border-bottom: 2px solid var(--verde); padding-bottom: 3px; }
+  .b .cabeca-razao span + span { text-align: right; }
+  .b .resumo div, .b .detalhe, .b .rodape div { border: 1px solid var(--verde); background: rgba(255,255,255,.55); border-radius: 2px; }
+  .b .resumo b { font-family: "IBM Plex Mono", monospace; color: var(--verde); }
+  .b .cobrancas { font-family: "IBM Plex Mono", monospace; font-size: 12px; }
+  .b .cobrancas td { border-bottom: 1px solid var(--pauta); }
+  .b .estado { font-family: "IBM Plex Mono", monospace; text-transform: uppercase; letter-spacing: .05em; font-size: 9.5px; border: 1px solid currentColor; border-radius: 2px; }
+  .b .estado.paga { color: var(--verde); } .b .estado.pendente { color: #8a6a17; }
+  .b .estado.parcialmente_estornada, .b .estado.estornada { color: var(--vermelho); }
+  .b .estado.expirada, .b .estado.cancelada { opacity: .55; }
+  .b .detalhe .qr { color: var(--tinta); }
+  .b .detalhe button { background: var(--vermelho); color: #fff; border: 0; border-radius: 2px; font-family: "IBM Plex Mono", monospace; text-transform: uppercase; letter-spacing: .06em; font-size: 11px; }
+
+  /* ---------- C · Cofre ---------- */
+  .c { --fundo: #0f1214; --cartao: #171c1f; --linha: #262d31; --texto: #e6ebe8; --suave: #8b9692; --verde: #45d19c; --sai: #e8857a; --ambar: #e7b75f;
+       background: var(--fundo); color: var(--texto); font-family: Inter, sans-serif; }
+  .c .marca { font-size: 18px; letter-spacing: .02em; }
+  .c .marca svg { color: var(--verde); }
+  .c .vivo { color: var(--verde); }
+  .c .saldo { font-family: "JetBrains Mono", monospace; font-weight: 600; font-size: 34px; }
+  .c .saldo-rotulo, .c .quem { color: var(--suave); opacity: 1; }
+  .c .trilho { background: var(--linha); } .c .trilho span { background: var(--verde); }
+  .c .acoes button { background: var(--cartao); color: var(--texto); border: 1px solid var(--linha); border-radius: 10px; }
+  .c .acoes button:first-child { background: var(--verde); color: #08130e; border-color: var(--verde); font-weight: 600; }
+  .c h3 { color: var(--suave); opacity: 1; }
+  .c ul.extrato { background: var(--cartao); border: 1px solid var(--linha); border-radius: 12px; padding: 0 12px; }
+  .c .mov + .mov { border-top: 1px solid var(--linha); }
+  .c .mov .val { font-family: "JetBrains Mono", monospace; font-size: 13px; }
+  .c .mov.entra .val { color: var(--verde); } .c .mov.sai .val { color: var(--texto); }
+  .c .resumo div, .c .detalhe, .c .rodape div { background: var(--cartao); border: 1px solid var(--linha); border-radius: 12px; }
+  .c .resumo b { font-family: "JetBrains Mono", monospace; }
+  .c .cobrancas tr + tr td { border-top: 1px solid var(--linha); }
+  .c .cobrancas td.v { font-family: "JetBrains Mono", monospace; font-size: 12px; }
+  .c .estado { border-radius: 6px; background: var(--linha); color: var(--suave); }
+  .c .estado.paga { background: rgba(69,209,156,.14); color: var(--verde); }
+  .c .estado.pendente { background: rgba(231,183,95,.14); color: var(--ambar); }
+  .c .estado.parcialmente_estornada, .c .estado.estornada { background: rgba(232,133,122,.14); color: var(--sai); }
+  .c .detalhe .qr { color: var(--texto); background: #fff; border-radius: 8px; padding: 6px; color: #0f1214; }
+  .c .detalhe button { background: transparent; border: 1px solid var(--sai); color: var(--sai); border-radius: 10px; }
+
+  /* ---------- D · Recibo ---------- */
+  .d { --fundo: #e4e4e0; --papel: #fdfdfb; --tinta: #151515; --suave: #6b6b66; --destaque: #1d5fd1;
+       background: var(--fundo); color: var(--tinta); font-family: "JetBrains Mono", monospace; font-size: 13px; }
+  .d .app { padding: 16px; }
+  .d .bloco { background: var(--papel); padding: 14px 14px 18px; margin-bottom: 14px; position: relative;
+              -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 12px 100%;
+                      mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 12px 100%; }
+  .d .barra { margin-bottom: 12px; }
+  .d .marca { font-size: 16px; letter-spacing: .3em; }
+  .d .vivo { color: var(--destaque); text-transform: uppercase; font-size: 11px; }
+  .d .saldo { font-size: 30px; font-weight: 700; text-align: center; margin: 4px 0 2px; }
+  .d .saldo-rotulo { text-align: center; text-transform: uppercase; letter-spacing: .15em; font-size: 11px; }
+  .d .limites { border-top: 1px dashed var(--tinta); padding-top: 10px; margin-top: 12px; }
+  .d .trilho { background: repeating-linear-gradient(90deg, #ccc 0 3px, transparent 3px 5px); border-radius: 0; height: 6px; }
+  .d .trilho span { background: repeating-linear-gradient(90deg, var(--tinta) 0 3px, transparent 3px 5px); }
+  .d .acoes button { background: var(--tinta); color: var(--papel); border: 0; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+  .d .acoes button + button { background: var(--papel); color: var(--tinta); outline: 1px solid var(--tinta); outline-offset: -1px; }
+  .d h3 { text-align: center; letter-spacing: .2em; font-size: 11px; opacity: 1; }
+  .d .mov { border-bottom: 1px dashed #bdbdb8; }
+  .d .mov .desc { font-size: 12px; } .d .mov .val { font-weight: 700; }
+  .d .mov.entra .val { color: var(--destaque); }
+  .d .resumo div, .d .detalhe, .d .rodape div { background: var(--papel); }
+  .d .resumo b { font-size: 17px; }
+  .d .cobrancas { font-size: 12px; }
+  .d .cobrancas td { border-bottom: 1px dashed #bdbdb8; }
+  .d .estado { text-transform: uppercase; font-size: 10px; letter-spacing: .05em; padding: 1px 5px; border: 1px solid var(--tinta); }
+  .d .estado.paga { background: var(--tinta); color: var(--papel); }
+  .d .estado.pendente { border-style: dashed; }
+  .d .estado.parcialmente_estornada, .d .estado.estornada { color: var(--destaque); border-color: var(--destaque); }
+  .d .estado.expirada, .d .estado.cancelada { opacity: .5; text-decoration: line-through; }
+  .d .detalhe .qr { color: var(--tinta); }
+  .d .detalhe button { background: var(--papel); border: 1px solid var(--tinta); text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<header class="topo">
+  <h1>Fiel · quatro identidades para a interface (fase 8)</h1>
+  <p>As quatro mostram o mesmo conteúdo: à esquerda a <b>carteira</b> (Ana, quem paga) e à direita o
+    <b>painel do lojista</b> (Bob, quem cobra). O botão "Simular pagamento" faz a Ana pagar a caneca: a
+    cobrança muda de estado e o extrato recebe o lançamento, como vai acontecer ao vivo. Dá para misturar
+    (por exemplo, as cores de uma com a tipografia de outra).</p>
+  <nav class="atalhos">
+    <a href="#a">A · Balança</a><a href="#b">B · Razão</a><a href="#c">C · Cofre</a><a href="#d">D · Recibo</a>
+  </nav>
+</header>
+
+<section class="opcao" id="a">
+  <div class="rotulo"><h2>A · Balança</h2><span>o fiel da balança, como um instrumento de latão</span></div>
+  <p class="ideia">Clara e calma. Verde-garrafa e latão sobre marfim, números em serifa (Fraunces). O logo é a balança em
+    equilíbrio, com o fiel no meio. Passa "banco tradicional, de confiança", sem parecer antigo.</p>
+  <ul class="ficha"><li><i style="background:#f4efe4"></i>marfim</li><li><i style="background:#1f4d3f"></i>verde-garrafa</li><li><i style="background:#a9823d"></i>latão</li><li><i style="background:#8c3b2e"></i>saída</li><li>Fraunces + Inter</li></ul>
+  <div class="telas" data-tema="a"></div>
+  <button class="simular" data-para="a">Simular pagamento</button>
+</section>
+
+<section class="opcao" id="b">
+  <div class="rotulo"><h2>B · Razão</h2><span>o livro-razão de contador, de papel pautado</span></div>
+  <p class="ideia">A mais "contábil": papel pautado com margem, tinta verde, saída em vermelho (a tinta vermelha da
+    contabilidade), saldo com sublinhado duplo. O extrato vira um razão de verdade, com a coluna do saldo depois de
+    cada movimento. Conversa direto com o tema do projeto (partidas dobradas).</p>
+  <ul class="ficha"><li><i style="background:#f6f4ea"></i>papel</li><li><i style="background:#24594b"></i>tinta verde</li><li><i style="background:#a3312a"></i>tinta vermelha</li><li><i style="background:#d5e3dc"></i>pauta</li><li>IBM Plex Mono + Source Serif 4</li></ul>
+  <div class="telas" data-tema="b"></div>
+  <button class="simular" data-para="b">Simular pagamento</button>
+</section>
+
+<section class="opcao" id="c">
+  <div class="rotulo"><h2>C · Cofre</h2><span>escuro e preciso, de aplicativo de banco</span></div>
+  <p class="ideia">A mais perto do seu visual sóbrio: grafite quase preto, um verde só para dinheiro entrando e para a
+    ação principal, números em mono. Parece um app de banco atual. O risco: se parecer com muitos outros.</p>
+  <ul class="ficha"><li><i style="background:#0f1214"></i>grafite</li><li><i style="background:#171c1f"></i>cartão</li><li><i style="background:#45d19c"></i>verde</li><li><i style="background:#e7b75f"></i>pendente</li><li>Inter + JetBrains Mono</li></ul>
+  <div class="telas" data-tema="c"></div>
+  <button class="simular" data-para="c">Simular pagamento</button>
+</section>
+
+<section class="opcao" id="d">
+  <div class="rotulo"><h2>D · Recibo</h2><span>cada tela é um comprovante impresso</span></div>
+  <p class="ideia">Papel de bobina com a borda serrilhada, tudo em mono, preto puro com um azul só no dinheiro que entra.
+    Combina com o QR e com o "comprovante" que todo pagamento gera. A mais diferente das quatro.</p>
+  <ul class="ficha"><li><i style="background:#fdfdfb"></i>bobina</li><li><i style="background:#151515"></i>tinta</li><li><i style="background:#1d5fd1"></i>entrada</li><li><i style="background:#e4e4e0"></i>fundo</li><li>JetBrains Mono</li></ul>
+  <div class="telas" data-tema="d"></div>
+  <button class="simular" data-para="d">Simular pagamento</button>
+</section>
+
+<script>
+const LOGOS = {
+  a: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M16 4v22M9 27h14M6 9h20"/><path d="M6 9l-4 9h8zM26 9l-4 9h8z" stroke-linejoin="round"/><circle cx="16" cy="5" r="1.6" fill="currentColor"/></svg>',
+  b: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="24" height="24" rx="1"/><path d="M4 9h24M4 10.8h24M16 10.8V28"/><path d="M8 16h5M19 16h5M8 21h5M19 21h5"/></svg>',
+  c: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="24" height="22" rx="5"/><circle cx="16" cy="16" r="5"/><path d="M16 11v-1M16 22v-1M11 16h-1M22 16h-1"/></svg>',
+  d: '<svg viewBox="0 0 32 32" fill="currentColor"><rect x="5" y="6" width="2" height="20"/><rect x="9" y="6" width="1" height="20"/><rect x="12" y="6" width="3" height="20"/><rect x="17" y="6" width="1" height="20"/><rect x="20" y="6" width="2" height="20"/><rect x="24" y="6" width="1" height="20"/><rect x="26" y="6" width="2" height="20"/></svg>',
+};
+
+const reais = c => (c < 0 ? '−' : '') + 'R$ ' + (Math.abs(c) / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+const sinal = c => (c > 0 ? '+' : '') + reais(c);
+
+const EXTRATO = [
+  { desc: 'Estorno de Bob L. a Ana S.: Camiseta preta', quando: 'hoje, 14:32', valor: 2550 },
+  { desc: 'Pagamento de Ana S. a Bob L.: Camiseta preta', quando: 'hoje, 14:05', valor: -2550 },
+  { desc: 'Transferência de Ana S. para Carla M.', quando: 'ontem, 21:10', valor: -15000 },
+  { desc: 'Transferência de Davi R. para Ana S.', quando: 'ontem, 09:47', valor: 40000 },
+  { desc: 'Bônus de boas-vindas', quando: '15/10, 18:02', valor: 100000 },
+];
+const COBRANCAS = [
+  { id: 132, desc: 'Caneca esmaltada', valor: 3400, estado: 'pendente', quando: 'expira em 12 min' },
+  { id: 131, desc: 'Boné preto', valor: 5990, estado: 'paga', quando: '14:20' },
+  { id: 129, desc: 'Moletom cinza', valor: 18900, estado: 'parcialmente_estornada', quando: 'R$ 40,00 devolvidos' },
+  { id: 128, desc: 'Camiseta preta', valor: 2550, estado: 'estornada', quando: '14:32' },
+  { id: 127, desc: 'Adesivos', valor: 800, estado: 'expirada', quando: '11:05' },
+  { id: 126, desc: 'Chaveiro', valor: 1200, estado: 'cancelada', quando: '10:40' },
+];
+const NOME_ESTADO = { pendente: 'pendente', paga: 'paga', parcialmente_estornada: 'estornada em parte', estornada: 'estornada', expirada: 'expirada', cancelada: 'cancelada' };
+
+// Um QR de mentira com os três quadrados de canto, sempre igual (semente fixa)
+function qr() {
+  const n = 25, celula = 4;
+  let semente = 7, partes = '';
+  const acaso = () => (semente = (semente * 16807) % 2147483647) / 2147483647;
+  const noCanto = (i, j) => [[0, 0], [18, 0], [0, 18]].some(([x, y]) => i >= x && i < x + 7 && j >= y && j < y + 7);
+  for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+    if (noCanto(i, j)) continue;
+    if (acaso() < 0.47) partes += `<rect x="${i * celula}" y="${j * celula}" width="${celula}" height="${celula}"/>`;
+  }
+  for (const [x, y] of [[0, 0], [18, 0], [0, 18]]) {
+    partes += `<rect x="${x * celula + 2}" y="${y * celula + 2}" width="24" height="24" fill="none" stroke="currentColor" stroke-width="4"/>`;
+    partes += `<rect x="${x * celula + 8}" y="${y * celula + 8}" width="12" height="12"/>`;
+  }
+  return `<svg class="qr" viewBox="0 0 ${n * celula} ${n * celula}" fill="currentColor" shape-rendering="crispEdges">${partes}</svg>`;
+}
+
+function movimento(m, saldoDepois, novo) {
+  return `<li class="mov ${m.valor > 0 ? 'entra' : 'sai'}${novo ? ' novo' : ''}">
+    <span class="desc">${m.desc}</span><span class="quando">${m.quando}</span>
+    <span class="val">${sinal(m.valor)}</span><span class="saldo-depois">${reais(saldoDepois)}</span></li>`;
+}
+
+function carteira(tema, estado) {
+  const extrato = estado.pagou
+    ? [{ desc: 'Pagamento de Ana S. a Bob L.: Caneca esmaltada', quando: 'agora', valor: -3400 }, ...EXTRATO]
+    : EXTRATO;
+  let saldo = 125000 + (estado.pagou ? -3400 : 0);
+  const saldos = extrato.map(m => { const s = saldo; saldo -= m.valor; return s; });
+  const atual = saldos[0];
+  const hoje = 2550 + (estado.pagou ? 3400 : 0);
+  const bloco = tema === 'd' ? ['<div class="bloco">', '</div>'] : ['', ''];
+  return `<div class="app">
+    ${bloco[0]}
+    <div class="barra"><div class="marca">${LOGOS[tema]}<span>${tema === 'b' ? 'FIEL' : tema === 'd' ? 'FIEL' : 'Fiel'}</span></div><span class="vivo">ao vivo</span></div>
+    <div class="saldo-rotulo">Saldo da carteira · Ana Souza</div>
+    <div class="saldo ${estado.pagou ? 'pisca' : ''}">${reais(atual)}</div>
+    <div class="limites">
+      <div class="limite"><b>${reais(500000 - hoje)}</b>livres hoje, de R$ 5.000,00<div class="trilho"><span style="width:${hoje / 5000}%"></span></div></div>
+      <div class="limite"><b>R$ 1.000,00</b>livres à noite (20h–6h)<div class="trilho"><span style="width:0%"></span></div></div>
+    </div>
+    ${bloco[1]}
+    <div class="acoes"><button>Transferir</button><button>Pagar QR</button><button>Cobrar</button></div>
+    ${bloco[0]}
+    <h3>Extrato</h3>
+    ${tema === 'b' ? '<div class="cabeca-razao"><span>Histórico</span><span>Valor</span><span>Saldo</span></div>' : ''}
+    <ul class="extrato">${extrato.map((m, i) => movimento(m, saldos[i], estado.pagou && i === 0)).join('')}</ul>
+    ${bloco[1]}
+  </div>`;
+}
+
+function painel(tema, estado) {
+  const cobrancas = COBRANCAS.map(c => c.id === 132 && estado.pagou ? { ...c, estado: 'paga', quando: 'agora' } : c);
+  const recebido = 41200 + (estado.pagou ? 3400 : 0);
+  const caneca = cobrancas[0];
+  const bloco = tema === 'd' ? ['<div class="bloco">', '</div>'] : ['', ''];
+  return `<div class="app">
+    ${bloco[0]}
+    <div class="barra"><div class="marca">${LOGOS[tema]}<span>${tema === 'b' || tema === 'd' ? 'FIEL' : 'Fiel'}</span></div><span class="quem">Loja do Bob · Bob Lima</span></div>
+    <div class="resumo">
+      <div><b class="${estado.pagou ? 'pisca' : ''}">${reais(recebido)}</b><small>recebido hoje</small></div>
+      <div><b>${estado.pagou ? 10 : 9}</b><small>cobranças pagas</small></div>
+      <div><b>R$ 65,50</b><small>devolvido hoje</small></div>
+    </div>
+    ${bloco[1]}
+    <div class="painel">
+      <div>${bloco[0]}
+        <h3>Cobranças</h3>
+        <table class="cobrancas"><tbody>${cobrancas.map(c => `
+          <tr class="${c.id === 132 ? 'ativa' : ''}"><td>#${c.id}</td><td>${c.desc}<br><small style="opacity:.6;font-weight:400">${c.quando}</small></td>
+          <td><span class="estado ${c.estado} ${c.id === 132 && estado.pagou ? 'pisca' : ''}">${NOME_ESTADO[c.estado]}</span></td><td class="v">${reais(c.valor)}</td></tr>`).join('')}
+        </tbody></table>${bloco[1]}
+      </div>
+      <div class="detalhe ${tema === 'd' ? 'bloco' : ''}">
+        <h3>Cobrança #132</h3>
+        ${qr()}
+        <div class="linha"><span>Caneca esmaltada</span><b>${reais(3400)}</b></div>
+        <div class="linha"><span>Estado</span><span class="estado ${caneca.estado}">${NOME_ESTADO[caneca.estado]}</span></div>
+        <div class="linha"><span>${estado.pagou ? 'Paga por' : 'Vale até'}</span><span>${estado.pagou ? 'Ana S., agora' : '15:12'}</span></div>
+        <button>${estado.pagou ? 'Estornar' : 'Cancelar cobrança'}</button>
+      </div>
+    </div>
+    <div class="rodape">
+      <div${tema === 'd' ? ' class="bloco"' : ''}><b>Avisos (webhook)</b>loja-do-bob.com/fiel<br>${estado.pagou ? 15 : 14} entregues · 1 na fila de falhas</div>
+      <div${tema === 'd' ? ' class="bloco"' : ''}><b>Conciliação</b>hoje às 03:00<br>tudo fecha · 1.284 lançamentos</div>
+    </div>
+  </div>`;
+}
+
+const estados = {};
+function desenhar(tema) {
+  const alvo = document.querySelector(`.telas[data-tema="${tema}"]`);
+  const e = estados[tema] ||= { pagou: false };
+  alvo.innerHTML = `<div><div class="tela ${tema}">${carteira(tema, e)}</div><p class="legenda">Carteira (celular ou estreita)</p></div>
+                    <div><div class="tela ${tema}">${painel(tema, e)}</div><p class="legenda">Painel do lojista</p></div>`;
+}
+document.querySelectorAll('.simular').forEach(botao => botao.addEventListener('click', () => {
+  const tema = botao.dataset.para;
+  estados[tema].pagou = !estados[tema].pagou;
+  botao.textContent = estados[tema].pagou ? 'Voltar ao início' : 'Simular pagamento';
+  desenhar(tema);
+}));
+['a', 'b', 'c', 'd'].forEach(desenhar);
+</script>
+</body>
+</html>

@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fiel · tela inicial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fundo: #f4efe4; --cartao: #fbf8f1; --tinta: #1f2a26; --marca: #1f4d3f; --numero: #1f4d3f; --latao: #a9823d;
+    --entra: #1f4d3f; --sai: #8c3b2e; --risco: #e3dccb; --botao: #1f4d3f; --botao-texto: #f4efe4; --contorno: #1f4d3f;
+    --suave: color-mix(in srgb, var(--tinta) 62%, transparent);
+    --curva: cubic-bezier(.2, .7, .2, 1);
+  }
+  :root[data-tema="escuro"] {
+    --fundo: #0f1c18; --cartao: #152620; --tinta: #ece5d3; --marca: #d2ad62; --numero: #ece5d3; --latao: #d2ad62;
+    --entra: #8fcaa9; --sai: #e39a86; --risco: #24372f; --botao: #d2ad62; --botao-texto: #15201b; --contorno: #d2ad62;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--fundo); color: var(--tinta); font: 16px/1.6 Inter, system-ui, sans-serif;
+         transition: background .5s var(--curva), color .5s var(--curva); }
+  a { color: inherit; }
+
+  /* Seletor da amostra (não faz parte do site) */
+  .amostra { position: sticky; top: 0; z-index: 10; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: center;
+             padding: 10px 16px; background: #2a2a2a; color: #eee; font-size: 13px; }
+  .amostra button { font: inherit; padding: 5px 12px; border-radius: 999px; border: 1px solid #555; background: transparent; color: #eee; cursor: pointer; }
+  .amostra button[aria-pressed="true"] { background: #eee; color: #222; }
+  .amostra span { opacity: .7; margin-left: 8px; }
+
+  /* Topo do site */
+  .topo { max-width: 1120px; margin: 0 auto; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .marca { display: flex; align-items: center; gap: 10px; font: 600 24px Fraunces, serif; color: var(--marca); text-decoration: none; }
+  .marca svg { width: 30px; height: 30px; }
+  .topo nav { display: flex; align-items: center; gap: 22px; font-size: 14px; }
+  .topo nav a { text-decoration: none; opacity: .8; }
+  .topo nav a:hover { opacity: 1; }
+  .lua { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--risco);
+         background: transparent; color: var(--marca); cursor: pointer; transition: transform .5s var(--curva); }
+  .lua:hover { transform: rotate(-20deg); }
+  .lua svg { width: 17px; height: 17px; }
+  @media (max-width: 640px) { .topo nav a.some { display: none; } }
+
+  .botao { display: inline-flex; align-items: center; gap: 8px; padding: 13px 24px; border-radius: 999px; font-weight: 600; font-size: 15px;
+           text-decoration: none; background: var(--botao); color: var(--botao-texto); border: 0; transition: transform .3s var(--curva), box-shadow .3s; }
+  .botao:hover { transform: translateY(-2px); box-shadow: 0 8px 20px -10px var(--marca); }
+  .botao.vazado { background: transparent; color: var(--contorno); box-shadow: inset 0 0 0 1.5px var(--contorno); }
+  .botao .seta { transition: transform .3s var(--curva); }
+  .botao:hover .seta { transform: translateX(3px); }
+
+  .heroi { max-width: 1120px; margin: 0 auto; padding: 48px 24px 72px; }
+  .heroi h1 { font: 600 clamp(38px, 6vw, 66px)/1.05 Fraunces, serif; margin: 0 0 18px; letter-spacing: -.01em; color: var(--numero); }
+  .heroi h1 em { font-style: italic; color: var(--latao); }
+  .heroi p.sub { font-size: 18px; color: var(--suave); max-width: 46ch; margin: 0 0 28px; }
+  .chamadas { display: flex; gap: 12px; flex-wrap: wrap; }
+  .aviso { margin-top: 18px; font-size: 13px; color: var(--suave); }
+
+  /* Balança grande (L1) */
+  .h1-centro { text-align: center; }
+  .h1-centro p.sub { margin-left: auto; margin-right: auto; }
+  .h1-centro .chamadas { justify-content: center; }
+  .grande { width: min(280px, 70vw); margin: 0 auto 26px; display: block; color: var(--marca); overflow: visible; }
+  .grande .viga, .grande .prato { transform-box: view-box; }
+  .grande .viga { transform-origin: 100px 46px; }
+  .grande .prato.esq { transform-origin: 32px 46px; }
+  .grande .prato.dir { transform-origin: 168px 46px; }
+  .grande .marco { color: var(--latao); transition: opacity .6s; }
+  .anima .grande .viga { animation: equilibrio 2.6s var(--curva) .3s both; }
+  .anima .grande .prato { animation: prumo 2.6s var(--curva) .3s both; }
+  .anima .grande .marco { animation: acende 1.2s ease-out 2.6s both; }
+  @keyframes equilibrio { 0% { transform: rotate(-11deg); } 30% { transform: rotate(6deg); } 55% { transform: rotate(-3deg); } 78% { transform: rotate(1deg); } 100% { transform: rotate(0); } }
+  @keyframes prumo { 0% { transform: rotate(11deg); } 30% { transform: rotate(-6deg); } 55% { transform: rotate(3deg); } 78% { transform: rotate(-1deg); } 100% { transform: rotate(0); } }
+  @keyframes acende { 0% { opacity: .25; } 40% { opacity: 1; filter: drop-shadow(0 0 6px var(--latao)); } 100% { opacity: 1; } }
+
+  /* Razão ao vivo (L2) */
+  .dividido { display: grid; grid-template-columns: 1.05fr .95fr; gap: 48px; align-items: center; }
+  @media (max-width: 860px) { .dividido { grid-template-columns: 1fr; } }
+  .razao { background: var(--cartao); border: 1px solid var(--risco); border-radius: 16px; padding: 18px 20px; box-shadow: 0 30px 60px -40px rgba(0,0,0,.35); }
+  .razao header { display: flex; justify-content: space-between; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--suave); margin-bottom: 8px; }
+  .razao header .vivo { color: var(--latao); display: inline-flex; gap: 6px; align-items: center; }
+  .razao header .vivo::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: pulso 1.8s ease-in-out infinite; }
+  @keyframes pulso { 50% { opacity: .25; } }
+  .razao ol { list-style: none; margin: 0; padding: 0; height: 300px; overflow: hidden; position: relative;
+              -webkit-mask-image: linear-gradient(to bottom, #000 72%, transparent); mask-image: linear-gradient(to bottom, #000 72%, transparent); }
+  .razao li { padding: 10px 0; border-top: 1px solid var(--risco); font-size: 14px; animation: entra .7s var(--curva) both; }
+  .razao li:first-child { border-top: 0; }
+  .razao li .fato { display: flex; justify-content: space-between; color: var(--suave); font-size: 12px; margin-bottom: 4px; }
+  .razao li .par { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; font-variant-numeric: tabular-nums; }
+  .razao .menos { color: var(--sai); } .razao .mais { color: var(--entra); }
+  @keyframes entra { from { opacity: 0; transform: translateY(-10px); } }
+  .razao footer { display: flex; justify-content: space-between; align-items: baseline; border-top: 2px solid var(--marca); margin-top: 6px; padding-top: 10px; }
+  .razao footer b { font: 600 22px Fraunces, serif; color: var(--numero); font-variant-numeric: tabular-nums; }
+  .razao footer .ok { font-size: 12px; color: var(--entra); }
+  .razao footer .ok.pisca { animation: pisca .8s ease-out; }
+  @keyframes pisca { 30% { opacity: .2; } }
+
+  /* Aparelho (L3) */
+  .aparelho { width: 290px; margin: 0 auto; border-radius: 40px; padding: 12px; background: var(--tinta); box-shadow: 0 40px 80px -40px rgba(0,0,0,.5); }
+  :root[data-tema="escuro"] .aparelho { background: #070d0b; box-shadow: 0 0 0 1px var(--risco), 0 40px 80px -40px rgba(0,0,0,.7); }
+  .aparelho .tela { border-radius: 30px; background: var(--fundo); padding: 26px 20px; min-height: 520px; }
+  .aparelho .rot { font-size: 12px; color: var(--suave); }
+  .aparelho .saldo { font: 600 34px Fraunces, serif; color: var(--numero); margin: 2px 0 14px; font-variant-numeric: tabular-nums; }
+  .aparelho .acoes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 18px; }
+  .aparelho .acoes span { text-align: center; font-size: 11px; padding: 8px 0; border-radius: 999px; box-shadow: inset 0 0 0 1.2px var(--contorno); color: var(--contorno); }
+  .aparelho .acoes span:first-child { background: var(--botao); color: var(--botao-texto); box-shadow: none; }
+  .aparelho ul { list-style: none; margin: 0; padding: 0; font-size: 12.5px; }
+  .aparelho li { display: flex; justify-content: space-between; padding: 9px 0; border-top: 1px solid var(--risco); opacity: 0; transform: translateY(6px); transition: opacity .6s var(--curva), transform .6s var(--curva); }
+  .aparelho li.visto { opacity: 1; transform: none; }
+  .aparelho li b { font-weight: 600; } .aparelho li .mais { color: var(--entra); } .aparelho li .menos { color: var(--sai); }
+  .aparelho .qr { width: 96px; display: block; margin: 18px auto 0; color: var(--marca); }
+  .aparelho .qr rect { opacity: 0; transition: opacity .4s; } .aparelho .qr.desenhado rect { opacity: 1; }
+
+  /* Seções comuns às três */
+  .faixa { border-top: 1px solid var(--risco); }
+  .secao { max-width: 1120px; margin: 0 auto; padding: 72px 24px; }
+  .secao h2 { font: 600 32px/1.15 Fraunces, serif; margin: 0 0 10px; color: var(--numero); }
+  .secao > p { color: var(--suave); max-width: 60ch; margin: 0 0 32px; }
+  .recursos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 860px) { .recursos { grid-template-columns: 1fr; } }
+  .recurso { background: var(--cartao); border: 1px solid var(--risco); border-radius: 14px; padding: 20px; transition: transform .4s var(--curva), border-color .4s; }
+  .recurso:hover { transform: translateY(-3px); border-color: var(--latao); }
+  .recurso svg { width: 26px; height: 26px; color: var(--latao); }
+  .recurso h3 { margin: 10px 0 4px; font-size: 16px; }
+  .recurso p { margin: 0; font-size: 14px; color: var(--suave); }
+  .lancamento { max-width: 560px; background: var(--cartao); border: 1px solid var(--risco); border-radius: 14px; padding: 8px 20px; font-variant-numeric: tabular-nums; }
+  .lancamento div { display: flex; justify-content: space-between; padding: 12px 0; border-top: 1px solid var(--risco); }
+  .lancamento div:first-child { border-top: 0; }
+  .lancamento .soma { border-top: 2px solid var(--marca); font-weight: 600; }
+  .lancamento .soma b { font: 600 20px Fraunces, serif; color: var(--latao); }
+  .rodape { max-width: 1120px; margin: 0 auto; padding: 28px 24px 48px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--suave); }
+
+  /* Aparecer ao rolar: sobe 12 px e surge, uma vez */
+  .surge { opacity: 0; transform: translateY(12px); transition: opacity .7s var(--curva), transform .7s var(--curva); }
+  .surge.visto { opacity: 1; transform: none; }
+  .surge:nth-child(2) { transition-delay: .08s; } .surge:nth-child(3) { transition-delay: .16s; }
+  .surge:nth-child(4) { transition-delay: .24s; } .surge:nth-child(5) { transition-delay: .32s; } .surge:nth-child(6) { transition-delay: .40s; }
+  .heroi .entrada > * { animation: entra-heroi .9s var(--curva) both; }
+  .heroi .entrada > *:nth-child(2) { animation-delay: .1s; } .heroi .entrada > *:nth-child(3) { animation-delay: .2s; } .heroi .entrada > *:nth-child(4) { animation-delay: .3s; }
+  @keyframes entra-heroi { from { opacity: 0; transform: translateY(14px); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+    .surge, .aparelho li, .aparelho .qr rect { opacity: 1 !important; transform: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="amostra">
+  <button data-l="1" aria-pressed="true">L1 · Equilíbrio</button>
+  <button data-l="2" aria-pressed="false">L2 · Razão ao vivo</button>
+  <button data-l="3" aria-pressed="false">L3 · Na mão</button>
+  <span id="explica"></span>
+</div>
+
+<header class="topo">
+  <a class="marca" href="#"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M16 4v22M9 27h14M6 9h20"/><path d="M6 9l-4 9h8zM26 9l-4 9h8z" stroke-linejoin="round"/><circle cx="16" cy="5" r="1.6" fill="currentColor"/></svg>Fiel</a>
+  <nav>
+    <a class="some" href="#recursos">Como funciona</a>
+    <a class="some" href="#">GitHub</a>
+    <a href="#">Entrar</a>
+    <button class="lua" id="lua" aria-label="Alternar tema claro e escuro"></button>
+  </nav>
+</header>
+
+<main id="heroi"></main>
+
+<section class="faixa" id="recursos">
+  <div class="secao">
+    <h2 class="surge">Dinheiro de mentira, regras de verdade</h2>
+    <p class="surge">Carteira, transferências, cobranças com QR e avisos para o lojista. Tudo com R$ 1.000 de bônus que não valem
+      nada fora daqui, e com as mesmas preocupações de um sistema de pagamentos de verdade.</p>
+    <div class="recursos">
+      <div class="recurso surge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg><h3>Transferências por chave</h3><p>Mandar duas vezes o mesmo pedido cobra uma vez só. Limite de dia e de noite.</p></div>
+      <div class="recurso surge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><path d="M14 14h2v2h-2zM18 18h2v2h-2zM14 18h2"/></svg><h3>Cobranças com QR</h3><p>O lojista cobra, quem paga lê o QR. Paga uma vez, vence sozinha.</p></div>
+      <div class="recurso surge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M9 14l-4-4 4-4"/><path d="M5 10h9a5 5 0 0 1 0 10h-2"/></svg><h3>Estornos</h3><p>Quem recebeu devolve, tudo ou em partes. O pagamento original continua no razão.</p></div>
+      <div class="recurso surge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 12h4l2-5 4 10 2-5h4"/></svg><h3>Avisos ao lojista</h3><p>Webhooks assinados, com nova tentativa e fila de falhas.</p></div>
+      <div class="recurso surge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg><h3>Conciliação às 3h</h3><p>Toda noite o razão inteiro é conferido, e o resultado chega pelo Telegram.</p></div>
+      <div class="recurso surge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/></svg><h3>O banco é a última palavra</h3><p>As regras estão no PostgreSQL: nem um bug na API cria dinheiro.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="faixa">
+  <div class="secao">
+    <h2 class="surge">Cada centavo que sai, entra em outro lugar</h2>
+    <p class="surge">Um pagamento é um lançamento com duas partidas. Se a soma não fechar em zero, o banco recusa e nada é gravado.</p>
+    <div class="lancamento surge">
+      <div><span>Ana paga a caneca do Bob</span><span></span></div>
+      <div><span>Carteira da Ana</span><span style="color:var(--sai)">−R$ 34,00</span></div>
+      <div><span>Carteira do Bob</span><span style="color:var(--entra)">+R$ 34,00</span></div>
+      <div class="soma"><span>Soma</span><b>R$ 0,00</b></div>
+    </div>
+  </div>
+</section>
+
+<footer class="faixa"><div class="rodape"><span>Fiel · projeto de estudo de André Lagos. Não movimenta dinheiro de verdade.</span><span>Kotlin · Spring Boot · PostgreSQL · React</span></div></footer>
+
+<script>
+const LUA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>';
+const SOL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+const raiz = document.documentElement;
+const lua = document.getElementById('lua');
+function aplicarTema(t) { raiz.dataset.tema = t; lua.innerHTML = t === 'escuro' ? SOL : LUA; }
+let salvo = null;
+try { salvo = localStorage.getItem('fiel-tema'); } catch (_) {}
+aplicarTema(salvo || (matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro'));
+lua.addEventListener('click', () => {
+  const t = raiz.dataset.tema === 'escuro' ? 'claro' : 'escuro';
+  aplicarTema(t);
+  try { localStorage.setItem('fiel-tema', t); } catch (_) {}
+});
+
+const BALANCA = `<svg class="grande" viewBox="0 0 200 160" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+  <path class="marco" d="M100 14v8" stroke-width="3"/>
+  <path d="M100 46v96M72 146h56"/>
+  <g class="viga">
+    <path d="M32 46h136"/><path d="M100 46l-4-18h8z" fill="currentColor"/>
+    <g class="prato esq"><path d="M32 46l-18 44M32 46l18 44M10 90q22 18 44 0z"/></g>
+    <g class="prato dir"><path d="M168 46l-18 44M168 46l18 44M146 90q22 18 44 0z"/></g>
+  </g>
+  <circle cx="100" cy="46" r="4" fill="currentColor"/>
+</svg>`;
+
+const CHAMADAS = `<div class="chamadas"><a class="botao" href="#">Criar conta com R$ 1.000 de mentira <span class="seta">→</span></a><a class="botao vazado" href="#recursos">Como funciona</a></div>`;
+const TITULO = 'Pagamentos onde a conta <em>sempre fecha</em>.';
+const SUB = 'Carteira digital, transferências e cobranças com QR. Cada centavo que sai de uma conta entra em outra, e o próprio banco de dados recusa o que não fechar.';
+
+const HEROIS = {
+  1: { explica: 'balança entra desequilibrada e acha o prumo; o fiel acende quando fecha',
+       html: () => `<section class="heroi h1-centro anima">${BALANCA}<div class="entrada"><h1>${TITULO}</h1><p class="sub">${SUB}</p>${CHAMADAS}<p class="aviso">Projeto de estudo. Nada aqui é dinheiro de verdade.</p></div></section>` },
+  2: { explica: 'um razão que recebe lançamentos sozinho; a soma fica sempre em zero',
+       html: () => `<section class="heroi dividido"><div class="entrada"><h1>${TITULO}</h1><p class="sub">${SUB}</p>${CHAMADAS}<p class="aviso">Projeto de estudo. Nada aqui é dinheiro de verdade.</p></div>
+         <div class="razao"><header><span>Livro-razão</span><span class="vivo">ao vivo</span></header><ol id="feed"></ol>
+         <footer><span>Soma de todas as partidas</span><span><b>R$ 0,00</b> <span class="ok" id="ok">fecha</span></span></footer></div></section>` },
+  3: { explica: 'o aparelho mostra a carteira; o bônus conta até R$ 1.000 e o QR se desenha',
+       html: () => `<section class="heroi dividido"><div class="entrada"><h1>${TITULO}</h1><p class="sub">${SUB}</p>${CHAMADAS}<p class="aviso">Projeto de estudo. Nada aqui é dinheiro de verdade.</p></div>
+         <div class="aparelho"><div class="tela"><div class="rot">Saldo da carteira</div><div class="saldo" id="conta">R$ 0,00</div>
+         <div class="acoes"><span>Transferir</span><span>Pagar QR</span><span>Cobrar</span></div>
+         <ul id="lista"><li><span>Bônus de boas-vindas</span><b class="mais">+R$ 1.000,00</b></li><li><span>Pagamento a Bob L.</span><b class="menos">−R$ 34,00</b></li><li><span>Transferência de Davi R.</span><b class="mais">+R$ 400,00</b></li></ul>
+         ${QR()}</div></div></section>` },
+};
+
+function QR() {
+  let s = 11, p = '';
+  const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  const canto = (i, j) => [[0, 0], [18, 0], [0, 18]].some(([x, y]) => i >= x && i < x + 7 && j >= y && j < y + 7);
+  for (let j = 0; j < 25; j++) for (let i = 0; i < 25; i++) if (!canto(i, j) && r() < .47) p += `<rect x="${i * 4}" y="${j * 4}" width="4" height="4" style="transition-delay:${(i + j) * 18}ms"/>`;
+  for (const [x, y] of [[0, 0], [18, 0], [0, 18]]) p += `<rect x="${x * 4 + 2}" y="${y * 4 + 2}" width="24" height="24" fill="none" stroke="currentColor" stroke-width="4"/><rect x="${x * 4 + 8}" y="${y * 4 + 8}" width="12" height="12"/>`;
+  return `<svg class="qr" id="qr" viewBox="0 0 100 100" fill="currentColor" shape-rendering="crispEdges">${p}</svg>`;
+}
+
+const reais = c => 'R$ ' + (c / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+const FATOS = [
+  ['Ana S. paga Bob L.', 'Ana S.', 'Bob L.', 3400], ['Davi R. transfere a Carla M.', 'Davi R.', 'Carla M.', 15000],
+  ['Bob L. estorna Ana S.', 'Bob L.', 'Ana S.', 1000], ['Carla M. paga Loja Eva', 'Carla M.', 'Loja Eva', 8990],
+  ['Bônus de boas-vindas', 'Emissão', 'Igor P.', 100000], ['Igor P. transfere a Ana S.', 'Igor P.', 'Ana S.', 2500],
+];
+let relogioL2 = null, contadorL3 = null;
+const reduzido = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function mostrar(l) {
+  clearInterval(relogioL2); cancelAnimationFrame(contadorL3);
+  document.querySelectorAll('.amostra button').forEach(b => b.setAttribute('aria-pressed', b.dataset.l === String(l)));
+  document.getElementById('explica').textContent = HEROIS[l].explica;
+  document.getElementById('heroi').innerHTML = HEROIS[l].html();
+  if (l === 2) {
+    const feed = document.getElementById('feed'); let n = 0;
+    const novo = () => {
+      const [fato, de, para, v] = FATOS[n++ % FATOS.length];
+      const li = document.createElement('li');
+      li.innerHTML = `<div class="fato"><span>${fato}</span><span>agora</span></div><div class="par"><span>${de}</span><span class="menos">−${reais(v)}</span><span>${para}</span><span class="mais">+${reais(v)}</span></div>`;
+      feed.prepend(li);
+      while (feed.children.length > 6) feed.lastChild.remove();
+      const ok = document.getElementById('ok'); ok.classList.remove('pisca'); void ok.offsetWidth; ok.classList.add('pisca');
+    };
+    for (let i = 0; i < 3; i++) novo();
+    if (!reduzido) relogioL2 = setInterval(novo, 2800);
+  }
+  if (l === 3) {
+    const conta = document.getElementById('conta'), alvo = 136600, inicio = performance.now(), dur = reduzido ? 0 : 1600;
+    const passo = t => { const k = dur ? Math.min(1, (t - inicio) / dur) : 1; conta.textContent = reais(Math.round(alvo * (1 - Math.pow(1 - k, 3)))); if (k < 1) contadorL3 = requestAnimationFrame(passo); };
+    contadorL3 = requestAnimationFrame(passo);
+    document.querySelectorAll('#lista li').forEach((li, i) => setTimeout(() => li.classList.add('visto'), 400 + i * 250));
+    setTimeout(() => document.getElementById('qr').classList.add('desenhado'), 900);
+  }
+}
+document.querySelectorAll('.amostra button').forEach(b => b.addEventListener('click', () => mostrar(Number(b.dataset.l))));
+const pedido = new URLSearchParams(location.search);
+if (pedido.get('tema')) aplicarTema(pedido.get('tema'));
+mostrar(Number(pedido.get('l')) || 1);
+
+const olho = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visto'); olho.unobserve(e.target); } }), { threshold: .15 });
+document.querySelectorAll('.surge').forEach(el => olho.observe(el));
+</script>
+</body>
+</html>
