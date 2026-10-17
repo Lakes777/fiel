@@ -1,5 +1,6 @@
 package io.github.lakes777.fiel.seguranca
 
+import jakarta.servlet.DispatcherType
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.context.annotation.Bean
@@ -60,6 +61,10 @@ class SegurancaConfig {
         http
             .authorizeHttpRequests {
                 it
+                    // O fim de uma resposta assíncrona (GET /eventos) volta pelo filtro: o pedido já foi
+                    // autorizado ao abrir
+                    .dispatcherTypeMatchers(DispatcherType.ASYNC)
+                    .permitAll()
                     .requestMatchers(HttpMethod.GET, "/saude", "/csrf")
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/cadastro", "/sessao")

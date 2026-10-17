@@ -172,6 +172,29 @@ class TransferenciasTest {
     }
 
     @Test
+    fun `GET limites mostra o que já saiu e o que ainda dá para mandar, de dia e de noite`() {
+        val (ana, bob) = Cliente("Ana Souza") to Cliente("Bob Lima")
+        parar("2026-03-10T14:00:00")
+        ana.transferir(bob, 30_000)
+
+        val deDia = ana.navegador.get("/limites").json()
+        assertEquals(500_000, deDia["diaLimiteCentavos"].asLong())
+        assertEquals(30_000, deDia["diaUsadoCentavos"].asLong())
+        assertEquals(false, deDia["ehNoite"].asBoolean())
+        assertEquals(0, deDia["noiteUsadoCentavos"].asLong())
+        assertEquals(470_000, deDia["disponivelCentavos"].asLong())
+
+        parar("2026-03-10T21:00:00")
+        ana.transferir(bob, 20_000)
+        val deNoite = ana.navegador.get("/limites").json()
+        assertEquals(true, deNoite["ehNoite"].asBoolean())
+        assertEquals(20_000, deNoite["noiteUsadoCentavos"].asLong())
+        assertEquals(50_000, deNoite["diaUsadoCentavos"].asLong())
+        assertEquals(80_000, deNoite["disponivelCentavos"].asLong())
+        assertEquals(401, Navegador(porta).get("/limites").status)
+    }
+
+    @Test
     fun `pode mandar o saldo inteiro e nem um centavo a mais`() {
         val (ana, bob) = Cliente("Ana Souza") to Cliente("Bob Lima")
 

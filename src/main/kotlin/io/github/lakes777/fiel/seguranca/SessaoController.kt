@@ -1,6 +1,7 @@
 package io.github.lakes777.fiel.seguranca
 
 import io.github.lakes777.fiel.erros.NaoAutenticado
+import io.github.lakes777.fiel.eventos.Canais
 import io.github.lakes777.fiel.usuarios.Cadastro
 import io.github.lakes777.fiel.usuarios.UsuarioLogado
 import io.github.lakes777.fiel.usuarios.normalizarEmail
@@ -57,6 +58,7 @@ class SessaoController(
     private val sessoes: FindByIndexNameSessionRepository<*>,
     private val limites: LimitesDeUso,
     private val tokensCsrf: CsrfTokenRepository,
+    private val canais: Canais,
 ) {
     /** Entrega o token CSRF (e grava o cookie XSRF-TOKEN): o cliente chama antes do primeiro POST. */
     @GetMapping("/csrf")
@@ -110,8 +112,13 @@ class SessaoController(
     /** Sai: a sessão é apagada do banco na hora, e o cookie antigo deixa de valer. */
     @DeleteMapping("/sessao")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    fun sair(requisicao: HttpServletRequest) {
+    fun sair(
+        @AuthenticationPrincipal usuario: UsuarioLogado,
+        requisicao: HttpServletRequest,
+    ) {
         requisicao.getSession(false)?.invalidate()
+        // As telas ao vivo fecham junto (as de outros aparelhos reconectam; as desta sessão, não)
+        canais.fecharDe(usuario.id)
         SecurityContextHolder.getContextHolderStrategy().clearContext()
     }
 
@@ -126,6 +133,9 @@ class SessaoController(
         // poderia gravá-la de volta ao fim da resposta
         requisicao.getSession(false)?.invalidate()
         sessoes.findByPrincipalName(usuario.username).keys.forEach(sessoes::deleteById)
+        // As telas ao vivo deste usuário nesta instância também fecham; nas outras, fecham em até 15 min
+        // (a reconexão já não passa, sem sessão)
+        canais.fecharDe(usuario.id)
         SecurityContextHolder.getContextHolderStrategy().clearContext()
     }
 }

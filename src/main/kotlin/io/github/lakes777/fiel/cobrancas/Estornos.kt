@@ -5,6 +5,7 @@ import io.github.lakes777.fiel.chaves.mascararNome
 import io.github.lakes777.fiel.erros.NaoEncontrado
 import io.github.lakes777.fiel.erros.PedidoInvalido
 import io.github.lakes777.fiel.erros.RegraDeNegocio
+import io.github.lakes777.fiel.eventos.Eventos
 import io.github.lakes777.fiel.razao.Centavos
 import io.github.lakes777.fiel.razao.NovaPartida
 import io.github.lakes777.fiel.razao.NovoLancamento
@@ -73,6 +74,7 @@ class Estornos(
     private val jdbc: JdbcClient,
     private val razao: Razao,
     private val avisos: Avisos,
+    private val eventos: Eventos,
     private val relogio: Clock,
     transacoes: PlatformTransactionManager,
 ) {
@@ -157,6 +159,9 @@ class Estornos(
             ),
             agora,
         )
+        eventos.publicar(cobranca.recebedorConta, "carteira")
+        eventos.publicar(cobranca.recebedorConta, "cobranca", cobranca.id)
+        eventos.publicar(pagador, "carteira")
         return feito
     }
 

@@ -5,6 +5,7 @@ import io.github.lakes777.fiel.chaves.mascararNome
 import io.github.lakes777.fiel.erros.NaoEncontrado
 import io.github.lakes777.fiel.erros.PedidoInvalido
 import io.github.lakes777.fiel.erros.RegraDeNegocio
+import io.github.lakes777.fiel.eventos.Eventos
 import io.github.lakes777.fiel.razao.Centavos
 import io.github.lakes777.fiel.razao.NovaPartida
 import io.github.lakes777.fiel.razao.NovoLancamento
@@ -67,6 +68,7 @@ class Transferencias(
     private val razao: Razao,
     private val saidas: Saidas,
     private val avisos: Avisos,
+    private val eventos: Eventos,
     private val relogio: Clock,
     transacoes: PlatformTransactionManager,
 ) {
@@ -167,6 +169,9 @@ class Transferencias(
                 .single()
         val feita = TransferenciaFeita(id, valor.valor, recebedor, agora)
         avisarRecebedor(para, feita, mascararNome(usuario.nome))
+        // Para as telas abertas dos dois; o Postgres só entrega no commit
+        eventos.publicar(de, "carteira")
+        eventos.publicar(para, "carteira")
         return feita
     }
 

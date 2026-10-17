@@ -10,6 +10,17 @@ import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import java.util.Locale
 
+/** O que a carteira já usou dos limites e quanto ainda pode mandar agora (GET /limites). */
+data class SituacaoDosLimites(
+    val diaLimiteCentavos: Long,
+    val diaUsadoCentavos: Long,
+    val noiteLimiteCentavos: Long,
+    val noiteUsadoCentavos: Long,
+    /** Se agora é noite (20h às 6h em Brasília): só então o limite noturno vale. */
+    val ehNoite: Boolean,
+    val disponivelCentavos: Long,
+)
+
 /**
  * Todo dinheiro que sai de uma carteira passa por aqui antes do lançamento: transferência e
  * pagamento de cobrança contam juntos nos [Limites]. Separados, daria para mandar o limite noturno
@@ -38,6 +49,26 @@ class Saidas(
             val qual = if (naNoite != null && Limites.NOITE - naNoite < Limites.DIA - noDia) "noturno" else "diário"
             throw RegraDeNegocio("passa do limite $qual; ainda dá para mandar ${reais(disponivel)}")
         }
+    }
+
+    /**
+     * Quanto a carteira [conta] ainda pode mandar agora, para a tela mostrar antes de a pessoa
+     * tentar. A noite só aparece quando é noite: de dia, a próxima noite começa do zero.
+     */
+    fun situacao(
+        conta: Long,
+        agora: Instant,
+    ): SituacaoDosLimites {
+        val noDia = enviadoDesde(conta, Limites.inicioDoDia(agora))
+        val naNoite = Limites.inicioDaNoite(agora)?.let { enviadoDesde(conta, it) }
+        return SituacaoDosLimites(
+            diaLimiteCentavos = Limites.DIA.valor,
+            diaUsadoCentavos = noDia.valor,
+            noiteLimiteCentavos = Limites.NOITE.valor,
+            noiteUsadoCentavos = naNoite?.valor ?: 0,
+            ehNoite = naNoite != null,
+            disponivelCentavos = Limites.disponivel(noDia, naNoite).valor,
+        )
     }
 
     private fun enviadoDesde(

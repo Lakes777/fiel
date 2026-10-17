@@ -1,5 +1,6 @@
 package io.github.lakes777.fiel
 
+import io.github.lakes777.fiel.seguranca.RelogioDaSessao
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Primary
@@ -37,4 +38,9 @@ class ConfiguracaoDoRelogio {
     @Bean
     @Primary
     fun relogioDeTeste() = RelogioDeTeste()
+
+    /** O da sessão é outro RelogioDeTeste: parar o da API numa data não derruba o login. */
+    @Bean
+    @Primary
+    fun relogioDaSessaoDeTeste() = RelogioDaSessao(RelogioDeTeste())
 }

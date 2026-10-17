@@ -1,10 +1,13 @@
 package io.github.lakes777.fiel.avisos
 
 import io.github.lakes777.fiel.erros.PedidoInvalido
+import io.github.lakes777.fiel.eventos.Eventos
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.simple.JdbcClient
 import org.springframework.stereotype.Component
+import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.support.TransactionTemplate
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
@@ -36,9 +39,13 @@ import kotlin.random.Random
 class Entregador(
     private val jdbc: JdbcClient,
     private val destino: Destino,
+    private val eventos: Eventos,
     private val relogio: Clock,
     @Value("\${fiel.avisos.prazo-segundos:15}") prazoSegundos: Long,
+    transacoes: PlatformTransactionManager,
 ) {
+    private val transacao = TransactionTemplate(transacoes)
+
     /** Tempo máximo de um envio inteiro: conectar, mandar, receber cabeçalhos E corpo da resposta. */
     private val prazo: Duration = Duration.ofSeconds(prazoSegundos)
 
@@ -199,12 +206,25 @@ class Entregador(
         if (estado == "falhou") log.warn("aviso {} foi para a fila de falhas: {}", aviso.id, resultado.resposta)
         // estado = 'pendente': se o lojista apagou o endereço no meio do envio, o aviso já está em falhou.
         // tentativas = :antes: um resultado atrasado não passa por cima de um mais novo (reenvio, outra instância)
+        // O resultado e o evento juntos: o painel só fica sabendo do que foi gravado
+        transacao.executeWithoutResult { gravarResultado(aviso, estado, tentativas, proxima, resultado, agora) }
+    }
+
+    private fun gravarResultado(
+        aviso: Reservado,
+        estado: String,
+        tentativas: Int,
+        proxima: Instant?,
+        resultado: Resultado,
+        agora: Instant,
+    ) {
         jdbc
             .sql(
                 """
                 update aviso set estado = :estado, tentativas = :tentativas, proxima_em = :proxima,
                        ultima_resposta = :resposta, entregue_em = :entregue
                 where id = :id and estado = 'pendente' and tentativas = :antes
+                returning usuario_id
                 """.trimIndent(),
             ).param("antes", aviso.tentativas)
             .param("estado", estado)
@@ -213,7 +233,10 @@ class Entregador(
             .param("resposta", resultado.resposta.take(MAX_RESPOSTA))
             .param("entregue", if (resultado.entregue) utc(agora) else null)
             .param("id", aviso.id)
-            .update()
+            .query(Long::class.java)
+            .optional()
+            // O painel do lojista mostra o histórico de entregas: avisa que ele mudou
+            .ifPresent { eventos.publicarParaUsuario(it, "avisos") }
     }
 
     private fun agora() = relogio.instant().truncatedTo(ChronoUnit.MICROS)

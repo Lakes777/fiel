@@ -87,6 +87,7 @@ ler. Vale até para o login, senão um site poderia logar você na conta dele.
 | Força bruta | 5 tentativas de login por e-mail a cada 15 min (429 com `Retry-After`), contadas **antes** de conferir a senha: 20 pedidos ao mesmo tempo ainda testam só 5 senhas (um teste conta as conferências do bcrypt). Senha certa zera a contagem |
 | Quem tem conta | No login, senha errada e e-mail sem cadastro dão a mesma resposta, no mesmo tempo. **O cadastro ainda revela** (409 para e-mail já usado); o certo é confirmar por e-mail, que o projeto não manda. Por isso o cadastro tem limite: 10 por hora por IP |
 | Fixação de sessão | O id da sessão e o token CSRF mudam no login |
+| Sessão esquecida aberta | 15 min sem uso de verdade e a sessão acaba. A tela ao vivo reconecta sozinha, e isso **não** conta como uso: um filtro guarda a hora do último pedido que não seja `/eventos`, e a conexão ao vivo fecha quando a sessão vence |
 | Conta de outra pessoa | **Autorização por objeto:** a conta (ou chave) de outra pessoa responde 404, igual a uma que não existe |
 | Varredura de chaves | 30 consultas por minuto por usuário; a consulta mostra só "Ana S." |
 | A sessão no banco | Guarda o usuário sem o hash da senha |
@@ -157,6 +158,8 @@ começo.
 | À noite (20h às 6h, atravessando a meia-noite) | R$ 1.000,00 |
 
 Os dois valem ao mesmo tempo; a mensagem do 422 diz qual estourou e quanto ainda dá para mandar.
+`GET /limites` mostra à tela, antes de a pessoa tentar, quanto já saiu no dia e na noite e quanto
+ainda dá para mandar agora.
 A hora vem de um `Clock` injetado: os testes param o relógio às 23h, à 1h, às 6h. Também há um
 limite de 30 pedidos por minuto por usuário, para transferências de 1 centavo não servirem para
 varrer chaves.
@@ -408,6 +411,31 @@ mais novas primeiro). Se o Telegram estiver fora do ar, a mensagem fica pendente
 nula) e uma tarefa tenta de novo a cada 5 minutos, por até 7 dias. Sem token configurado, o
 resultado fica só no log. O token vai na URL da API do Telegram, então nada no Fiel loga a URL
 nem a mensagem de erro do envio.
+
+## Ao vivo (`GET /eventos`)
+
+A tela abre `new EventSource("/eventos")` (Server-Sent Events) e fica sabendo, sem perguntar de
+tempos em tempos, quando algo dela muda: `carteira` (saldo e extrato), `cobranca` (com o id) e
+`avisos` (uma entrega de webhook terminou). O evento **não leva dados**, só "busque de novo": a tela
+busca pelas rotas de sempre, que já conferem quem pode ver o quê. Ao abrir (e a cada reconexão)
+chega `pronto`, e a tela busca tudo, para não perder o que mudou enquanto estava desconectada.
+
+**Pelo próprio Postgres, com `LISTEN`/`NOTIFY`.** Cada fato (transferência, pagamento, estorno,
+cobrança criada, cancelada ou expirada) faz um `pg_notify` **dentro da sua transação**. O Postgres só
+entrega o `NOTIFY` no commit: um pagamento desfeito (saldo, limite) não avisa ninguém, e o aviso
+nunca chega antes de o dado estar gravado. Toda instância da API escuta o canal numa conexão só
+dela, então o evento chega a quem estiver conectado em qualquer instância, sem Redis.
+
+| Cuidado | Como |
+| --- | --- |
+| Evento de outra pessoa | O `NOTIFY` leva o id do dono da conta, e cada conexão só recebe os do usuário dela (teste com três pessoas) |
+| Conexão do `LISTEN` caiu | Volta sozinha, com espera crescente, e manda `pronto` a todas as telas (teste derruba a conexão com `pg_terminate_backend`). Sem aviso por 30 s, um `select 1` confere se ela ainda está viva: firewall de nuvem derruba conexão parada sem avisar |
+| `NOTIFY` estragado | É ignorado, sem derrubar o `LISTEN` |
+| Muitas abas | No máximo 5 conexões por pessoa; a mais antiga fecha |
+| Celular que não lê | Cada envio roda numa thread virtual: um cliente travado não atrasa os outros |
+| Proxy que fecha conexão parada | Um comentário (`ping`) a cada 25 s |
+| Desligar a API | As conexões fecham antes do desligamento gracioso, que senão esperaria por elas 20 s (medido: 1 s) |
+| Sair | `DELETE /sessao` e `DELETE /sessoes` fecham as conexões da pessoa |
 
 ## Rodando
 

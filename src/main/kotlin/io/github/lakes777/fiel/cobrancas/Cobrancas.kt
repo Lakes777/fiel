@@ -5,6 +5,7 @@ import io.github.lakes777.fiel.chaves.mascararNome
 import io.github.lakes777.fiel.erros.Conflito
 import io.github.lakes777.fiel.erros.NaoEncontrado
 import io.github.lakes777.fiel.erros.PedidoInvalido
+import io.github.lakes777.fiel.eventos.Eventos
 import io.github.lakes777.fiel.razao.NovaPartida
 import io.github.lakes777.fiel.razao.NovoLancamento
 import io.github.lakes777.fiel.razao.Razao
@@ -90,6 +91,7 @@ class Cobrancas(
     private val razao: Razao,
     private val saidas: Saidas,
     private val avisos: Avisos,
+    private val eventos: Eventos,
     private val relogio: Clock,
     transacoes: PlatformTransactionManager,
 ) {
@@ -106,8 +108,23 @@ class Cobrancas(
         }
         val agora = agora()
         val validade = Duration.ofMinutes(pedido.validadeMinutos)
-        val id = banco.inserir(usuario.id, pedido.valorCentavos, pedido.descricao.trim(), agora, agora.plus(validade))
-        return checkNotNull(banco.porId(id)).doLojista(agora)
+        // Numa transação com o evento: se ele falhar, a cobrança não fica criada (repetir não duplica)
+        return checkNotNull(
+            transacao.execute {
+                val id =
+                    banco.inserir(
+                        usuario.id,
+                        pedido.valorCentavos,
+                        pedido.descricao.trim(),
+                        agora,
+                        agora.plus(validade),
+                    )
+                val criada = checkNotNull(banco.porId(id))
+                // Outras abas do lojista também mostram a cobrança nova
+                eventos.publicar(criada.recebedorConta, "cobranca", id)
+                criada.doLojista(agora)
+            },
+        )
     }
 
     /** As 100 mais recentes. */
@@ -138,6 +155,7 @@ class Cobrancas(
                 val estado = cobranca.estadoEm(agora)
                 if (estado != "pendente") throw Conflito("só cobrança pendente pode ser cancelada; esta está $estado")
                 banco.marcarCancelada(id)
+                eventos.publicar(cobranca.recebedorConta, "cobranca", id)
                 cobranca.copy(estado = "cancelada").doLojista(agora)
             },
         )
@@ -219,6 +237,9 @@ class Cobrancas(
             ),
             agora,
         )
+        eventos.publicar(pagador, "carteira")
+        eventos.publicar(cobranca.recebedorConta, "carteira")
+        eventos.publicar(cobranca.recebedorConta, "cobranca", cobranca.id)
         return PagamentoFeito(cobranca.valor.valor, cobranca.descricao, recebedor, agora)
     }
 
@@ -242,6 +263,7 @@ class Cobrancas(
                         ),
                         agora,
                     )
+                    eventos.publicar(it.recebedorConta, "cobranca", it.id)
                 }
                 expiradas.size
             },

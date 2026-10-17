@@ -78,6 +78,57 @@ class Navegador(
         return Resposta(resposta.statusCode(), resposta.body(), resposta.headers())
     }
 
+    /** Um evento recebido em GET /eventos: o nome e o JSON dos dados. */
+    data class EventoRecebido(
+        val nome: String,
+        val dados: String,
+    )
+
+    /**
+     * GET /eventos aberto, como o EventSource do navegador: lê o fluxo numa thread e junta cada
+     * evento (linhas "event:" e "data:" até a linha em branco). Comentários (o "ping") são ignorados.
+     */
+    inner class CanalDeEventos : AutoCloseable {
+        val recebidos = java.util.concurrent.LinkedBlockingQueue<EventoRecebido>()
+
+        @Volatile
+        var status = 0
+
+        @Volatile
+        var terminou = false
+        private val resposta =
+            http
+                .sendAsync(
+                    HttpRequest.newBuilder(URI.create("$base/eventos")).header("Accept", "text/event-stream").build(),
+                    HttpResponse.BodyHandlers.ofLines(),
+                ).thenApply { r ->
+                    status = r.statusCode()
+                    var nome = "message"
+                    var dados = ""
+                    r.body().forEach { linha ->
+                        when {
+                            linha.startsWith("event:") -> nome = linha.removePrefix("event:").trim()
+                            linha.startsWith("data:") -> dados = linha.removePrefix("data:").trim()
+                            linha.isEmpty() && dados.isNotEmpty() -> {
+                                recebidos += EventoRecebido(nome, dados)
+                                nome = "message"
+                                dados = ""
+                            }
+                        }
+                    }
+                    terminou = true
+                }
+
+        /** O próximo evento, ou null se nada chegar em [ms]. */
+        fun proximo(ms: Long = 5_000): EventoRecebido? = recebidos.poll(ms, java.util.concurrent.TimeUnit.MILLISECONDS)
+
+        override fun close() {
+            resposta.cancel(true)
+        }
+    }
+
+    fun eventos() = CanalDeEventos()
+
     fun cookie(nome: String): String? =
         cookies.cookieStore.cookies
             .firstOrNull { it.name == nome }
