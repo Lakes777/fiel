@@ -32,7 +32,9 @@ export function useContagem(
         const comeco = performance.now();
         let quadro = 0;
         const passo = (t: number) => {
-            const k = Math.min(1, (t - comeco) / duracao);
+            // O horário do quadro pode vir um pouco antes do performance.now() do começo: sem o piso, o
+            // primeiro quadro daria um valor fora do intervalo (um saldo negativo piscando)
+            const k = Math.max(0, Math.min(1, (t - comeco) / duracao));
             const suave = 1 - Math.pow(1 - k, 3);
             setValor(Math.round(inicio + (alvo - inicio) * suave));
             if (k < 1) quadro = requestAnimationFrame(passo);

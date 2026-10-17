@@ -36,6 +36,8 @@
     /* O QR é sempre escuro sobre claro: leitor de QR não lê invertido */
     --qr: #1f2a26;
     --qr-fundo: #fbf8f1;
+    /* A moldura do celular da tela inicial */
+    --aparelho: #1f2a26;
 
     --serifa: 'Fraunces', Georgia, serif;
     --texto: 'Inter', system-ui, sans-serif;
@@ -71,6 +73,7 @@
     --neutro-t: #b7b2a3;
     --qr: #0f1c18;
     --qr-fundo: #ece5d3;
+    --aparelho: #070d0b;
     color-scheme: dark;
 }
 

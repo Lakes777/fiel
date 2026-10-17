@@ -30,7 +30,13 @@ export function estadoDaSessao(): EstadoDaSessao {
 export function carregarSessao(): Promise<void> {
     consulta ??= api<Usuario>('/eu')
         .then((usuario) => mudar({ carregando: false, usuario }))
-        .catch(() => mudar({ carregando: false, usuario: null }));
+        // Se a pessoa entrou enquanto esta consulta voltava, o login dela vale (não desloga a aba)
+        .catch(() =>
+            mudar({
+                carregando: false,
+                usuario: estado.carregando ? null : estado.usuario,
+            }),
+        );
     return consulta;
 }
 
