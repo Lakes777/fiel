@@ -46,6 +46,34 @@ class SessaoTest {
     ) = n.post("/sessao", mapOf("email" to email, "senha" to senha))
 
     @Test
+    fun `logo depois de entrar, vários pedidos ao mesmo tempo funcionam (a tela abre carregando tudo)`() {
+        val ana = navegador()
+        val email = "${UUID.randomUUID()}@teste.fiel"
+        assertEquals(
+            201,
+            ana.post("/cadastro", mapOf("nome" to "Ana Souza", "email" to email, "senha" to SENHA)).status,
+        )
+        // Sem nenhum pedido entre o login e a rajada, como a tela faz
+        assertEquals(200, ana.post("/sessao", mapOf("email" to email, "senha" to SENHA)).status)
+        val largada = CountDownLatch(1)
+        val executor = Executors.newFixedThreadPool(12)
+        try {
+            val caminhos = listOf("/contas", "/limites", "/chaves", "/cobrancas", "/eu", "/avisos")
+            val futuros =
+                List(12) { i ->
+                    executor.submit<Int> {
+                        largada.await()
+                        ana.get(caminhos[i % caminhos.size]).status
+                    }
+                }
+            largada.countDown()
+            assertEquals(List(12) { 200 }, futuros.map { it.get(30, TimeUnit.SECONDS) })
+        } finally {
+            executor.shutdownNow()
+        }
+    }
+
+    @Test
     fun `cadastro cria a carteira com o bônus de R$ 1000 e o extrato mostra de onde ele veio`() {
         val n = navegador()
         val ana = n.cadastrarEEntrar()

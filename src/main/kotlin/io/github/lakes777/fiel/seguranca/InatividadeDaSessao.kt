@@ -39,8 +39,13 @@ class InatividadeDaSessao(
             if (ultimo != null && agora - ultimo >= limite.toMillis()) {
                 sessao.invalidate()
             } else {
-                val desde = if (ultimo == null || pedido.servletPath != "/eventos") agora else ultimo
-                if (desde != ultimo) sessao.setAttribute(ULTIMO_USO, desde)
+                // O login já grava a hora (ver SessaoController.entrar). Aqui só se regrava depois de
+                // [REGRAVAR_APOS]: atributo novo gravado por vários pedidos ao mesmo tempo esbarra na
+                // chave do Spring Session JDBC (a tela abre fazendo seis pedidos de uma vez), e regravar
+                // a cada pedido seria uma escrita no banco por pedido, sem ganho
+                val renovar = pedido.servletPath != "/eventos" && (ultimo == null || agora - ultimo >= REGRAVAR_APOS_MS)
+                val desde = if (renovar) agora else ultimo ?: agora
+                if (renovar) sessao.setAttribute(ULTIMO_USO, desde)
                 pedido.setAttribute(FALTA, limite.minusMillis(agora - desde))
             }
         }
@@ -49,6 +54,7 @@ class InatividadeDaSessao(
 
     companion object {
         const val ULTIMO_USO = "fiel.ultimoUso"
+        private const val REGRAVAR_APOS_MS = 30_000L
 
         /** Atributo do pedido: a [Duration] que falta para a sessão vencer por falta de uso. */
         const val FALTA = "fiel.faltaParaVencer"

@@ -59,6 +59,7 @@ class SessaoController(
     private val limites: LimitesDeUso,
     private val tokensCsrf: CsrfTokenRepository,
     private val canais: Canais,
+    private val relogioDaSessao: RelogioDaSessao,
 ) {
     /** Entrega o token CSRF (e grava o cookie XSRF-TOKEN): o cliente chama antes do primeiro POST. */
     @GetMapping("/csrf")
@@ -98,6 +99,8 @@ class SessaoController(
         val novoContexto = estrategia.createEmptyContext().apply { authentication = autenticado }
         estrategia.context = novoContexto
         contexto.saveContext(novoContexto, requisicao, resposta)
+        // A hora do último uso nasce com a sessão: os pedidos que a tela faz juntos logo depois só a leem
+        requisicao.getSession().setAttribute(InatividadeDaSessao.ULTIMO_USO, relogioDaSessao.relogio.millis())
         // Token CSRF novo a cada login: um token visto antes de entrar não serve depois
         tokensCsrf.saveToken(tokensCsrf.generateToken(requisicao), requisicao, resposta)
         val usuario = autenticado.principal as UsuarioLogado
