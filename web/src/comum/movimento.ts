@@ -9,17 +9,23 @@ export function menosMovimento(): boolean {
 }
 
 /**
- * Um número que conta até o valor novo (saldo que muda ao vivo, o bônus da tela inicial). A
- * primeira vez conta a partir de `de`; depois, do valor anterior. Com menos movimento, pula direto.
+ * Um número que conta até o valor novo (saldo que muda ao vivo, o bônus da tela inicial). Enquanto
+ * `alvo` é null (carregando), fica em 0. O primeiro valor que chega aparece direto, a não ser que
+ * `de` diga de onde contar (a tela inicial conta do zero); depois, cada mudança conta a partir do
+ * valor anterior. Com menos movimento, pula direto sempre.
  */
 export function useContagem(
-    alvo: number,
-    { de = alvo, duracao = 900 }: { de?: number; duracao?: number } = {},
-) {
-    const [valor, setValor] = useState(menosMovimento() ? alvo : de);
-    const anterior = useRef(menosMovimento() ? alvo : de);
+    alvo: number | null,
+    { de, duracao = 900 }: { de?: number; duracao?: number } = {},
+): number {
+    const [valor, setValor] = useState(alvo === null ? 0 : (de ?? alvo));
+    // undefined: nenhum valor chegou ainda
+    const anterior = useRef<number | undefined>(
+        alvo === null ? undefined : (de ?? alvo),
+    );
     useEffect(() => {
-        const inicio = anterior.current;
+        if (alvo === null) return;
+        const inicio = anterior.current ?? de ?? alvo;
         anterior.current = alvo;
         if (
             inicio === alvo ||
@@ -41,6 +47,8 @@ export function useContagem(
         };
         quadro = requestAnimationFrame(passo);
         return () => cancelAnimationFrame(quadro);
+        // `de` só vale para o primeiro valor: mudar depois não recomeça a contagem
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [alvo, duracao]);
     return valor;
 }

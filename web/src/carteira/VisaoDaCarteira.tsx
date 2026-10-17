@@ -36,9 +36,7 @@ export function VisaoDaCarteira({
     linhas = 20,
     agora,
 }: PropsDaVisao) {
-    const saldo = useContagem(saldoCentavos ?? 0, {
-        de: contarDe ?? saldoCentavos ?? 0,
-    });
+    const saldo = useContagem(saldoCentavos, { de: contarDe });
     const mudou = useMudou(saldoCentavos);
     return (
         <section className="visao-carteira" aria-label="Carteira">

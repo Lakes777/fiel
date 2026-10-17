@@ -8,7 +8,7 @@ export interface PedidoFeito {
 }
 
 export type Resposta = { status?: number; corpo?: unknown };
-type Tratador = (pedido: PedidoFeito) => Resposta | Promise<Resposta>;
+export type Tratador = (pedido: PedidoFeito) => Resposta | Promise<Resposta>;
 
 /**
  * Troca o fetch por uma API falsa (as rotas sem o /api). As rotas são "METODO /caminho" (sem a busca ?...) ou com
