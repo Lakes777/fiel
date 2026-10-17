@@ -263,7 +263,8 @@ h3 {
     transition: border-color 0.2s;
 }
 .campo input:focus,
-.campo textarea:focus {
+.campo textarea:focus,
+.campo select:focus {
     outline: none;
     border-color: var(--marca);
 }

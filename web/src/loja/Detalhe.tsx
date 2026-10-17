@@ -42,19 +42,21 @@ function criadaAgora(estado: unknown, id: number): CobrancaDoLojista | null {
 function Detalhe({ id }: { id: number }) {
     useTitulo(`Cobrança #${id}`);
     const recemCriada = criadaAgora(useLocation().state, id);
-    const { dados, erro, recarregar } = useDados<Carregado>(async (sinal) => {
-        const cobranca = await api<CobrancaDoLojista>(`/cobrancas/${id}`, {
-            sinal,
-        });
-        // Sem estorno, não há lista para buscar
-        const estornos =
-            cobranca.estornadoCentavos > 0
-                ? await api<EstornoFeito[]>(`/cobrancas/${id}/estornos`, {
-                      sinal,
-                  })
-                : [];
-        return { cobranca, estornos };
-    });
+    const { dados, erro, statusDoErro, recarregar } = useDados<Carregado>(
+        async (sinal) => {
+            const cobranca = await api<CobrancaDoLojista>(`/cobrancas/${id}`, {
+                sinal,
+            });
+            // Sem estorno, não há lista para buscar
+            const estornos =
+                cobranca.estornadoCentavos > 0
+                    ? await api<EstornoFeito[]>(`/cobrancas/${id}/estornos`, {
+                          sinal,
+                      })
+                    : [];
+            return { cobranca, estornos };
+        },
+    );
     // Só os eventos desta cobrança (o "pronto" o useDados já trata)
     useAoVivo((evento) => {
         if (
@@ -90,7 +92,7 @@ function Detalhe({ id }: { id: number }) {
             return (
                 <NaoAchada
                     mensagem={
-                        erro === 'Não encontrado.'
+                        statusDoErro === 404
                             ? 'Esta cobrança não existe, ou é de outra loja.'
                             : erro
                     }

@@ -5,7 +5,7 @@ import {
     useState,
     useSyncExternalStore,
 } from 'react';
-import { mensagemDe } from './cliente';
+import { ErroDaApi, mensagemDe } from './cliente';
 import { aoVivo, type EventoAoVivo, type TipoDeEvento } from './eventos';
 import { assinarSessao, estadoDaSessao, type EstadoDaSessao } from './sessao';
 
@@ -26,6 +26,8 @@ export function useAoVivo(ouvinte: (evento: EventoAoVivo) => void): void {
 export interface Dados<T> {
     dados: T | null;
     erro: string | null;
+    /** O status HTTP do erro (404, 422...), ou 0 sem conexão; null sem erro */
+    statusDoErro: number | null;
     carregando: boolean;
     /** Busca de novo (depois de uma ação da própria tela, por exemplo) */
     recarregar: () => void;
@@ -44,6 +46,7 @@ export function useDados<T>(
 ): Dados<T> {
     const [dados, setDados] = useState<T | null>(null);
     const [erro, setErro] = useState<string | null>(null);
+    const [statusDoErro, setStatusDoErro] = useState<number | null>(null);
     const [carregando, setCarregando] = useState(true);
     const funcao = useRef(carregar);
     useEffect(() => {
@@ -64,6 +67,7 @@ export function useDados<T>(
                 if (minha !== vez.current) return;
                 setDados(novos);
                 setErro(null);
+                setStatusDoErro(null);
             })
             .catch((e: unknown) => {
                 if (
@@ -72,6 +76,7 @@ export function useDados<T>(
                 )
                     return;
                 setErro(mensagemDe(e));
+                setStatusDoErro(e instanceof ErroDaApi ? e.status : null);
             })
             .finally(() => {
                 if (minha === vez.current) setCarregando(false);
@@ -89,5 +94,5 @@ export function useDados<T>(
             recarregar();
     });
 
-    return { dados, erro, carregando, recarregar };
+    return { dados, erro, statusDoErro, carregando, recarregar };
 }

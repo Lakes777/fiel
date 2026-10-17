@@ -275,10 +275,6 @@
     font-variant-numeric: tabular-nums;
     padding-left: 8px;
 }
-.campo select:focus {
-    outline: none;
-    border-color: var(--marca);
-}
 .campo [aria-invalid='true'],
 .com-prefixo:has([aria-invalid='true']) {
     border-color: var(--sai);
