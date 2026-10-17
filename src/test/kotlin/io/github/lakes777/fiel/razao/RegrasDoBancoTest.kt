@@ -145,7 +145,7 @@ class RegrasDoBancoTest {
                 "update lancamento set descricao = 'outra' where id = $l",
                 "delete from partida where lancamento_id = $l",
                 "delete from lancamento where id = $l",
-                "truncate partida, lancamento, transferencia, cobranca",
+                "truncate partida, lancamento, transferencia, cobranca, estorno",
             )
         for (sql in tentativas) {
             assertEquals("23001", erroDoBanco { jdbc.sql(sql).update() }.sqlState, sql)

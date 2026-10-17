@@ -4,7 +4,8 @@
 
 [![CI](https://github.com/Lakes777/fiel/actions/workflows/ci.yml/badge.svg)](https://github.com/Lakes777/fiel/actions/workflows/ci.yml)
 
-Carteiras digitais, transferências por chave, cobranças com QR e avisos para o lojista, com
+Carteiras digitais, transferências por chave, cobranças com QR, estornos, avisos para o lojista e
+uma conciliação toda noite, com
 **dinheiro de mentira**. O nome vem do fiel da balança: cada centavo que sai de uma conta entra
 em outra, e o próprio banco de dados recusa um lançamento que não feche em zero.
 
@@ -21,7 +22,7 @@ em outra, e o próprio banco de dados recusa um lançamento que não feche em ze
 - [x] **4. Transferências:** `Idempotency-Key`, saldo nunca negativo, limite diário e noturno, teste com 100 transferências simultâneas
 - [x] **5. Cobranças com QR:** formato TLV com CRC16, estados e expiração
 - [x] **6. Avisos ao lojista (webhooks):** outbox, novas tentativas com espera crescente, assinatura HMAC com carimbo de tempo, fila de falhas
-- [ ] **7. Estorno e conciliação noturna:** só quem recebeu devolve (total ou em partes, sem prazo); com aviso no Telegram
+- [x] **7. Estorno e conciliação noturna:** só quem recebeu devolve (total ou em partes, sem prazo); conferência do razão inteiro toda noite, com aviso no Telegram
 - [ ] **8. Interface:** React (carteira e painel do lojista) com atualização ao vivo
 - [ ] **9. Publicação:** demonstração no ar
 
@@ -207,10 +208,14 @@ mesmo tempo, 1 paga e 19 levam 409; a mesma pessoa mandando 20 vezes paga uma.
 ([`V5__cobrancas.sql`](src/main/resources/db/migration/V5__cobrancas.sql)):
 
 ```
-pendente ──► paga ──► (estorno, na fase 7)
+pendente ──► paga ──► parcialmente_estornada ──► estornada
+    │         └──────────────────────────────────────► (estorno de tudo de uma vez)
     ├──────► expirada
     └──────► cancelada   (POST /cobrancas/{id}/cancelamento, só o lojista)
 ```
+
+Os estados de estorno não se escrevem à mão: só o gatilho do estorno leva até eles (veja
+[Estornos](#estornos)).
 
 O que foi cobrado (valor, recebedor, datas) nunca muda; o pagamento gravado também não; o
 lançamento do pagamento é conferido no commit (mesmas contas, mesmo valor, nada mais); cobrança
@@ -234,8 +239,8 @@ para mandar R$ 1.000 de madrugada por transferência e esvaziar o resto pagando 
 ## Avisos ao lojista (webhooks)
 
 O lojista cadastra um endereço (`PUT /webhook {url}`) e o Fiel avisa o sistema dele quando uma
-cobrança é paga ou expira, ou quando chega uma transferência (`cobranca.paga`,
-`cobranca.expirada`, `transferencia.recebida`). A resposta do cadastro traz o **segredo** da
+cobrança é paga, expira ou é estornada, ou quando chega uma transferência (`cobranca.paga`,
+`cobranca.expirada`, `cobranca.estornada`, `transferencia.recebida`). A resposta do cadastro traz o **segredo** da
 assinatura, que não aparece de novo.
 
 **Outbox.** O aviso é gravado **na mesma transação** do fato. Pagou, o aviso existe; o pagamento
@@ -301,6 +306,109 @@ lojistas. A defesa seria cifrar a coluna (AES-GCM, com a chave numa variável de
 | `GET /avisos?estado=` | Histórico de entregas (100 mais recentes); `falhou` é a fila de falhas |
 | `POST /avisos/{id}/reenvio` | Manda de novo um entregue ou que falhou, com as tentativas do zero |
 
+## Estornos
+
+Quem recebeu uma cobrança devolve o dinheiro a quem pagou, tudo ou em partes, sem prazo:
+`POST /cobrancas/{id}/estornos` com `{valorCentavos, motivo}` (motivo opcional, até 140
+caracteres). O estorno é um **lançamento novo**, da carteira do lojista para a do pagador: o
+pagamento original continua no razão, como na contabilidade de verdade.
+
+**Só o lojista estorna.** Quem pagou não tem rota para pedir a devolução, e o projeto não tem
+contestação (o MED do Pix, em que o banco de quem pagou pede o dinheiro de volta por fraude). Isso
+exigiria um segundo lado com regras próprias (prazos, bloqueio cautelar do valor, análise), e
+ficou de fora de propósito.
+
+**`Idempotency-Key` obrigatória**, como na transferência, e válida por cobrança: o app que repete
+o pedido depois de uma queda de rede não devolve duas vezes. A cobrança é travada (`FOR UPDATE`)
+antes de tudo, então 20 cópias do mesmo pedido ao mesmo tempo fazem um estorno só, e 20 estornos
+diferentes de R$ 2 numa cobrança de R$ 10 passam exatamente 5.
+
+**Um detalhe do Postgres que o revisor pegou:** a soma dos estornos é lida num comando separado,
+**depois** da trava. Quando o `SELECT ... FOR UPDATE` espera outra transação soltar a cobrança, ele
+devolve a linha nova da cobrança, mas uma subconsulta dentro dele continua com a foto de antes da
+espera (em `READ COMMITTED`). Com a soma junto no mesmo SELECT, dois estornos de R$ 3 ao mesmo tempo
+mandavam ao lojista dois avisos dizendo "R$ 3 estornados", em vez de R$ 3 e R$ 6. O teste disso
+quebra na contraprova. A ordem das travas é a mesma do
+pagamento (cobrança e depois contas), então estorno e pagamento nunca se esperam em círculo.
+
+**Limites: o estorno fica fora dos dois lados.**
+
+| Pergunta | Resposta | Por quê |
+| --- | --- | --- |
+| Conta no limite de quem devolve? | Não | Um lojista que já usou o limite da noite ainda devolve o dinheiro do cliente. Não há risco: só dá para devolver o que entrou, e só para quem pagou |
+| Devolve o limite de quem pagou? | Não | Senão pagar, receber o estorno e pagar de novo giraria acima do limite diário, com uma "loja" da mesma pessoa |
+
+**O banco é a última palavra** ([`V7__estornos_e_conciliacao.sql`](src/main/resources/db/migration/V7__estornos_e_conciliacao.sql)):
+
+- só cobrança paga (ou estornada em parte) recebe estorno, e a soma dos estornos nunca passa do
+  valor. O gatilho trava a cobrança antes de somar, então dois estornos ao mesmo tempo também não
+  passam. Na contraprova, sem a trava da aplicação, os mesmos 20 pedidos simultâneos ainda deram
+  exatamente 5 estornos (os outros voltaram 500 em vez de 409/422): o banco segurou o dinheiro
+  sozinho;
+- o estado da cobrança segue a soma dos estornos, e só o gatilho do estorno o muda. Um `UPDATE`
+  à mão para `estornada` é recusado, como o saldo guardado da conta;
+- o lançamento do estorno é conferido no commit (do lojista para o pagador, exatamente o valor).
+  Um lançamento é de um fato só: o de um estorno não serve de transferência nem de pagamento, e
+  vice-versa;
+- estorno não muda nem é apagado.
+
+| Status | Quando |
+| --- | --- |
+| 201 | Feito (ou repetido, com `Idempotent-Replayed`) |
+| 400 | Sem `Idempotency-Key`, valor zero ou negativo, motivo longo demais |
+| 404 | Cobrança que não existe ou de outro lojista (inclusive para quem pagou) |
+| 409 | Cobrança pendente, expirada, cancelada ou já estornada por inteiro |
+| 422 | Mais do que falta devolver, saldo insuficiente, `Idempotency-Key` já usada em outro pedido |
+
+| Rota | O que faz |
+| --- | --- |
+| `POST /cobrancas/{id}/estornos` | Estorna; `GET /cobrancas/{id}` passa a mostrar `estornadoCentavos` |
+| `GET /cobrancas/{id}/estornos` | Os estornos da cobrança, do mais antigo ao mais novo |
+
+## Conciliação noturna
+
+Toda noite, às 3h de Brasília, uma tarefa refaz com SQL as contas que os gatilhos já garantem uma
+a uma, olhando o sistema inteiro:
+
+1. todas as partidas somam zero (dinheiro não nasceu nem sumiu);
+2. cada lançamento fecha em zero, com pelo menos duas partidas;
+3. o saldo guardado de cada conta é a soma das partidas dela;
+4. nenhuma carteira está negativa;
+5. cada transferência, pagamento e estorno bate com o próprio lançamento;
+6. o estado de cada cobrança combina com a soma dos estornos dela, e cobrança não paga não tem estorno;
+7. nenhum lançamento é de dois fatos ao mesmo tempo;
+8. **todo dinheiro que entra numa carteira tem um fato por trás**: transferência, pagamento,
+   estorno ou o bônus do cadastro (um por carteira). Um lançamento balanceado da emissão para uma
+   carteira passa por todos os gatilhos (a soma fecha, o saldo bate) e só esta conferência o pega.
+   No banco dos testes ela acusa, corretamente, os "depósitos de teste" que alguns testes fazem
+   para ter saldo de sobra.
+
+**Para que conferir o que os gatilhos já impedem?** Os gatilhos barram o erro na entrada. A
+conciliação acha o que entrou **por fora** deles: o dono das tabelas pode desligar gatilhos, um
+backup pode ser restaurado pela metade, uma migração pode ter bug. Melhor descobrir às 3h, pela
+conferência, do que pela reclamação de um cliente. Os testes provam cada conferência do jeito
+difícil: desligam os gatilhos (`session_replication_role = replica`), estragam o banco dentro de
+uma transação, conferem e desfazem.
+
+Tudo roda numa transação `REPEATABLE READ` e só de leitura: as conferências veem a mesma foto do
+banco, então um pagamento feito no meio não aparece numa soma e falta na outra. O resultado fica
+na tabela `conciliacao`, **um por dia**: com duas instâncias da API, a segunda encontra o dia
+ocupado e não manda o aviso de novo.
+
+O resultado vai para um chat do **Telegram** (`FIEL_TELEGRAM_TOKEN` e `FIEL_TELEGRAM_CHAT`):
+
+```
+Fiel · conciliação de 17/10/2026
+Tudo fecha: 1.284 lançamentos, R$ 52.310,00 em carteiras.
+Últimas 24 h: 12 transferência(s) (R$ 830,00), 4 pagamento(s) (R$ 215,50), 1 estorno(s) (R$ 25,50).
+```
+
+Com divergência, a mensagem começa com `ATENÇÃO` e lista as 10 primeiras (cada conferência traz as
+mais novas primeiro). Se o Telegram estiver fora do ar, a mensagem fica pendente (`avisada_em`
+nula) e uma tarefa tenta de novo a cada 5 minutos, por até 7 dias. Sem token configurado, o
+resultado fica só no log. O token vai na URL da API do Telegram, então nada no Fiel loga a URL
+nem a mensagem de erro do envio.
+
 ## Rodando
 
 Precisa do Java 21 e do Docker.
@@ -325,6 +433,8 @@ Sem o compose, `./gradlew bootTestRun` sobe a API com um Postgres temporário do
 | `FIEL_BANCO_USUARIO` | `fiel` | Usuário do banco |
 | `FIEL_BANCO_SENHA` | `fiel` | Senha do banco |
 | `FIEL_PORTA` | `8080` | Porta da API |
+| `FIEL_TELEGRAM_TOKEN` | (vazio) | Token do bot que manda a conciliação noturna; vazio = só no log |
+| `FIEL_TELEGRAM_CHAT` | (vazio) | Id do chat que recebe a conciliação |
 
 ## `/saude`
 

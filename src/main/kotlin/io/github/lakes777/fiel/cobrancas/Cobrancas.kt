@@ -55,6 +55,8 @@ data class CobrancaDoLojista(
     val criadaEm: Instant,
     val expiraEm: Instant,
     val pagaEm: Instant?,
+    /** Quanto já voltou para quem pagou. */
+    val estornadoCentavos: Long,
     val qr: String,
 )
 

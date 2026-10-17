@@ -26,6 +26,7 @@ import org.springframework.context.annotation.Import
         "fiel.limite.transferencias-por-minuto=1000000",
         "fiel.limite.cobrancas-por-minuto=1000000",
         "fiel.limite.pagamentos-por-minuto=1000000",
+        "fiel.limite.estornos-por-minuto=1000000",
         // Expiração e entrega de avisos rodam quando o teste chama, com o relógio parado
         "fiel.tarefas-agendadas=false",
         // O receptor de avisos dos testes roda em http://localhost

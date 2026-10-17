@@ -131,7 +131,7 @@ class RegrasDasCobrancasTest {
         for ((comando, alvo) in tentativas) {
             assertEquals("23001", erroDoBanco { sql(comando, "id" to alvo) }.sqlState, comando)
         }
-        assertEquals("23001", erroDoBanco { sql("truncate cobranca") }.sqlState)
+        assertEquals("23001", erroDoBanco { sql("truncate cobranca, estorno") }.sqlState)
     }
 
     @Test

@@ -83,9 +83,7 @@ class Transferencias(
         chaveDeIdempotencia: String,
         pedido: PedidoDeTransferencia,
     ): Resultado {
-        if (!CHAVE_DE_IDEMPOTENCIA.matches(chaveDeIdempotencia)) {
-            throw PedidoInvalido("a Idempotency-Key precisa ter de 1 a 100 caracteres visíveis (sem espaço nem acento)")
-        }
+        exigirChaveDeIdempotencia(chaveDeIdempotencia)
         val chave = pedido.chave.trim().lowercase()
         val resumo = resumir(chave, pedido.valorCentavos)
         return checkNotNull(
@@ -219,6 +217,15 @@ class Transferencias(
     companion object {
         /** ASCII visível, sem espaço: cabe um UUID, um ULID ou o que o cliente preferir. */
         private val CHAVE_DE_IDEMPOTENCIA = Regex("[\\x21-\\x7E]{1,100}")
+
+        /** Vale também para o estorno, que usa a mesma regra. */
+        fun exigirChaveDeIdempotencia(chave: String) {
+            if (!CHAVE_DE_IDEMPOTENCIA.matches(chave)) {
+                throw PedidoInvalido(
+                    "a Idempotency-Key precisa ter de 1 a 100 caracteres visíveis (sem espaço nem acento)",
+                )
+            }
+        }
 
         /** O que identifica o pedido: a mesma chave de idempotência com outro resumo é outro pedido. */
         fun resumir(

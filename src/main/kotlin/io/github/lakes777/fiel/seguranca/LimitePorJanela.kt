@@ -81,6 +81,7 @@ class LimitesDeUso(
     @Value("\${fiel.limite.transferencias-por-minuto:30}") transferenciasPorMinuto: Int,
     @Value("\${fiel.limite.cobrancas-por-minuto:30}") cobrancasPorMinuto: Int,
     @Value("\${fiel.limite.pagamentos-por-minuto:30}") pagamentosPorMinuto: Int,
+    @Value("\${fiel.limite.estornos-por-minuto:30}") estornosPorMinuto: Int,
 ) {
     /**
      * Tentativas de login por e-mail, contadas ANTES de conferir a senha: 200 pedidos ao mesmo tempo
@@ -109,4 +110,7 @@ class LimitesDeUso(
 
     /** Consultas e pagamentos de QR por usuário. */
     val pagamento = LimitePorJanela(maximo = pagamentosPorMinuto, janela = Duration.ofMinutes(1))
+
+    /** Pedidos de estorno por usuário: cada um trava a cobrança e as duas carteiras. */
+    val estorno = LimitePorJanela(maximo = estornosPorMinuto, janela = Duration.ofMinutes(1))
 }
