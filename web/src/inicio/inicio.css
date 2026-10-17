@@ -1,0 +1,297 @@
+/*
+ * Tela inicial, proposta L3 "Na mão" da amostra aprovada (docs/inicio-amostra.html). As classes
+ * levam o prefixo "inicio-" porque o CSS das telas é todo global.
+ */
+
+/* ---------- Herói ---------- */
+.inicio-heroi {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 48px 24px 72px;
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 48px;
+    align-items: center;
+}
+@media (max-width: 860px) {
+    .inicio-heroi {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+@media (max-width: 640px) {
+    .inicio-heroi {
+        padding: 24px 16px 56px;
+        gap: 40px;
+    }
+}
+.inicio-heroi h1 {
+    font-size: clamp(38px, 6vw, 66px);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    margin: 0 0 18px;
+}
+.inicio-heroi h1 em {
+    font-style: italic;
+    color: var(--latao);
+}
+.inicio-sub {
+    font-size: 18px;
+    color: var(--suave);
+    max-width: 46ch;
+    margin: 0 0 28px;
+}
+.inicio-chamadas {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+/* No celular estreito o botão longo não cabe numa linha: os dois ocupam a largura toda */
+@media (max-width: 480px) {
+    .inicio-chamadas > .botao {
+        width: 100%;
+        text-align: center;
+    }
+}
+.inicio-aviso {
+    margin: 18px 0 0;
+    font-size: 13px;
+    color: var(--suave);
+}
+
+/* Os quatro itens do texto entram um depois do outro, uma vez (0,1 s de diferença, como na amostra) */
+.inicio-heroi-texto > * {
+    animation: inicio-entra 0.9s var(--curva) both;
+}
+.inicio-heroi-texto > :nth-child(2) {
+    animation-delay: 0.1s;
+}
+.inicio-heroi-texto > :nth-child(3) {
+    animation-delay: 0.2s;
+}
+.inicio-heroi-texto > :nth-child(4) {
+    animation-delay: 0.3s;
+}
+@keyframes inicio-entra {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+}
+
+/* ---------- O celular ---------- */
+.inicio-celular {
+    width: min(290px, 100%);
+    margin: 0 auto;
+    border-radius: 40px;
+    padding: 12px;
+    /* No claro a moldura é a cor da tinta (escura); no escuro, ver abaixo */
+    background: var(--tinta);
+    box-shadow: var(--sombra);
+    user-select: none;
+    animation: inicio-entra 0.9s var(--curva) 0.2s both;
+}
+/*
+ * No escuro a tinta é clara: a moldura passa a ser o próprio fundo, escurecido (sem cor escrita à
+ * mão), com um fio para separar da página. Navegador sem cor relativa fica com o fundo e o fio.
+ */
+:root[data-tema='escuro'] .inicio-celular {
+    background: var(--fundo);
+    background: rgb(
+        from var(--fundo) calc(r * 0.45) calc(g * 0.45) calc(b * 0.45)
+    );
+    box-shadow:
+        0 0 0 1px var(--risco),
+        var(--sombra);
+}
+.inicio-tela {
+    border-radius: 30px;
+    background: var(--fundo);
+    padding: 26px 18px 20px;
+    min-height: 520px;
+}
+.inicio-tela .visao-carteira .saldo {
+    font-size: 34px;
+}
+.inicio-tela .visao-carteira .limites {
+    font-size: 11px;
+    gap: 10px;
+}
+.inicio-tela .visao-carteira .limite b {
+    font-size: 12px;
+}
+.inicio-tela .visao-carteira .acoes {
+    gap: 6px;
+    margin-bottom: 16px;
+}
+/* Só aparência: nada reage ao mouse */
+.inicio-tela .acoes .botao {
+    padding: 8px 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    pointer-events: none;
+}
+.inicio-tela .visao-carteira .rotulo {
+    font-size: 11px;
+    margin-bottom: 4px;
+}
+.inicio-tela .visao-carteira .descricao {
+    font-size: 12.5px;
+}
+.inicio-tela .visao-carteira .quando {
+    font-size: 11px;
+}
+.inicio-tela .visao-carteira .valor {
+    font-size: 12.5px;
+}
+/* O extrato entra depois do saldo começar a contar, linha a linha (como na amostra) */
+.inicio-tela .visao-carteira .extrato li.entrar {
+    animation-delay: calc(400ms + var(--i, 0) * 250ms);
+}
+.inicio-qr {
+    display: flex;
+    justify-content: center;
+    margin-top: 14px;
+}
+
+/* ---------- Seções ---------- */
+.inicio-faixa {
+    border-top: 1px solid var(--risco);
+}
+.inicio-secao {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 72px 24px;
+}
+@media (max-width: 640px) {
+    .inicio-secao {
+        padding: 48px 16px;
+    }
+}
+.inicio-secao h2 {
+    font-size: 32px;
+    margin: 0 0 10px;
+}
+@media (max-width: 640px) {
+    .inicio-secao h2 {
+        font-size: 26px;
+    }
+}
+.inicio-explica {
+    color: var(--suave);
+    max-width: 60ch;
+    margin: 0 0 32px;
+}
+
+.inicio-recursos {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+@media (max-width: 860px) {
+    .inicio-recursos {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+/* A grade em si não se mexe: quem surge são os cartões, um depois do outro */
+.inicio-recursos.revelar {
+    opacity: 1;
+    transform: none;
+}
+.inicio-recursos.revelar:not(.revelado) > .inicio-recurso {
+    opacity: 0;
+}
+.inicio-recursos.revelado > .inicio-recurso {
+    /* "backwards": depois de entrar, o cartão volta a obedecer ao :hover */
+    animation: inicio-entra 0.7s var(--curva) backwards;
+    animation-delay: calc(var(--i, 0) * 80ms);
+}
+.inicio-recurso {
+    background: var(--cartao);
+    border: 1px solid var(--risco);
+    border-radius: var(--raio);
+    padding: 20px;
+    transition:
+        transform 0.4s var(--curva),
+        border-color 0.4s var(--curva);
+}
+.inicio-recurso:hover {
+    transform: translateY(-3px);
+    border-color: var(--latao);
+}
+.inicio-recurso svg {
+    width: 26px;
+    height: 26px;
+    color: var(--latao);
+}
+.inicio-recurso h3 {
+    margin: 10px 0 4px;
+    font-size: 16px;
+}
+.inicio-recurso p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--suave);
+}
+
+/* O lançamento de duas partidas que soma zero */
+.inicio-lancamento {
+    max-width: 560px;
+    background: var(--cartao);
+    border: 1px solid var(--risco);
+    border-radius: var(--raio);
+    padding: 8px 20px;
+}
+.inicio-lancamento-titulo {
+    margin: 0;
+    padding: 12px 0;
+    font-weight: 500;
+}
+.inicio-lancamento dl {
+    margin: 0;
+}
+.inicio-lancamento dl > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 0;
+    border-top: 1px solid var(--risco);
+}
+.inicio-lancamento dd {
+    margin: 0;
+    white-space: nowrap;
+}
+.inicio-lancamento .inicio-soma {
+    border-top: 2px solid var(--marca);
+    font-weight: 600;
+}
+.inicio-soma dd {
+    font: 600 20px/1.2 var(--serifa);
+    color: var(--latao);
+}
+
+.inicio-rodape {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 28px 24px 48px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--suave);
+}
+@media (max-width: 640px) {
+    .inicio-rodape {
+        padding: 24px 16px 40px;
+    }
+}
+.inicio-rodape a {
+    text-decoration-color: var(--latao);
+    text-underline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .inicio-recursos.revelar:not(.revelado) > .inicio-recurso {
+        opacity: 1;
+    }
+}

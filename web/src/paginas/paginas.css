@@ -1,0 +1,60 @@
+/* Entrar e Criar conta: um cartão estreito no meio da tela, sem nada em volta para distrair */
+.acesso {
+    display: grid;
+    place-items: start center;
+    padding: 40px 24px 72px;
+}
+@media (max-width: 640px) {
+    .acesso {
+        padding: 16px 16px 48px;
+    }
+}
+.acesso-cartao {
+    width: min(420px, 100%);
+    padding: 32px 28px 24px;
+    box-shadow: var(--sombra);
+    animation: entrar 0.6s var(--curva) both;
+}
+@media (max-width: 640px) {
+    .acesso-cartao {
+        padding: 24px 18px 20px;
+    }
+}
+.acesso-balanca {
+    width: 34px;
+    height: 34px;
+    color: var(--latao);
+    margin-bottom: 10px;
+}
+.acesso-cartao h1 {
+    font-size: 30px;
+    margin: 0 0 4px;
+}
+.acesso-sub {
+    color: var(--suave);
+    margin: 0 0 24px;
+    font-size: 15px;
+}
+.acesso-aviso {
+    font-size: 13px;
+    color: var(--suave);
+    border-left: 2px solid var(--latao);
+    padding-left: 10px;
+    margin: 0 0 20px;
+}
+.acesso-enviar {
+    width: 100%;
+    text-align: center;
+}
+.acesso-troca {
+    margin: 20px 0 0;
+    font-size: 14px;
+    color: var(--suave);
+    text-align: center;
+}
+.acesso-troca a {
+    color: var(--marca);
+    font-weight: 600;
+    text-decoration-color: var(--latao);
+    text-underline-offset: 3px;
+}
