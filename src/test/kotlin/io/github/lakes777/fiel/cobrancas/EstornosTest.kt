@@ -158,6 +158,8 @@ class EstornosTest {
 
     @Test
     fun `sem saldo, o lojista não devolve`() {
+        // De dia: a transferência de R$ 1.005 passaria do limite noturno (R$ 1.000) e daria 422 antes da hora
+        parar("2026-10-16T14:00:00")
         val (loja, ana, id) = paga(1_000)
         // Bob manda quase tudo para a Ana: sobra R$ 5
         assertEquals(201, loja.navegador.transferir(ana.chave, 100_500).status)
