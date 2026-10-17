@@ -19,9 +19,9 @@ em outra, e o próprio banco de dados recusa um lançamento que não feche em ze
 - [x] **2. Razão contábil:** partidas dobradas, valores em centavos (`Long`), lançamentos imutáveis e soma zero conferida pelo banco; testes de propriedade
 - [x] **3. Usuários e chaves:** Spring Security com sessão no Postgres e CSRF, cada um só enxerga as próprias contas
 - [x] **4. Transferências:** `Idempotency-Key`, saldo nunca negativo, limite diário e noturno, teste com 100 transferências simultâneas
-- [ ] **5. Cobranças com QR:** formato TLV com CRC16, estados e expiração
+- [x] **5. Cobranças com QR:** formato TLV com CRC16, estados e expiração
 - [ ] **6. Avisos ao lojista (webhooks):** outbox, novas tentativas com espera crescente, assinatura HMAC com carimbo de tempo, fila de falhas
-- [ ] **7. Estorno e conciliação noturna:** com aviso no Telegram
+- [ ] **7. Estorno e conciliação noturna:** só quem recebeu devolve (total ou em partes, sem prazo); com aviso no Telegram
 - [ ] **8. Interface:** React (carteira e painel do lojista) com atualização ao vivo
 - [ ] **9. Publicação:** demonstração no ar
 
@@ -173,6 +173,63 @@ pela cobrança de uma "loja" da mesma pessoa.
 | 404 | Chave que não existe |
 | 422 | Saldo insuficiente, limite passado, `Idempotency-Key` já usada em outro pedido |
 | 429 | Mais de 30 pedidos por minuto |
+
+## Cobranças com QR
+
+Qualquer pessoa com carteira pode cobrar: `POST /cobrancas` com `{valorCentavos, descricao,
+validadeMinutos}` (de 1 minuto a 1 dia; padrão 30) devolve a cobrança com o texto do **QR**. Quem
+paga manda esse texto em `POST /pagamentos/consulta` para conferir (valor, descrição, "Bob L.")
+e em `POST /pagamentos` para pagar.
+
+**O QR** segue a ideia dos QR de pagamento de verdade (EMV): uma fila de campos TLV (ID de 2
+dígitos, tamanho de 2 dígitos, valor) terminando num **CRC16/CCITT-FALSE**. O formato é próprio e
+**incompatível com app de banco de propósito**: o primeiro campo é `FIEL`, não o `01` do padrão.
+
+```
+00 04 FIEL                                   formato
+01 01 1                                      versão
+26 36 3f2a9c1e-7b4d-4e8a-9f60-1c2d3e4f5a6b   código da cobrança (aleatório: ninguém adivinha contando)
+54 04 2550                                   valor em centavos
+59 06 Bob L.                                 recebedor
+63 04 xxxx                                   CRC16 de tudo antes, incluindo o "6304"
+```
+
+O CRC pega erro de leitura: um teste troca cada caractere de um QR, um por vez, e nenhuma troca
+passa. Ele **não** é segurança, porque qualquer um recalcula. Por isso quem paga vê os dados do
+servidor, não os do QR, e um QR com outro valor impresso é recusado (422).
+
+**Paga uma vez só, sem Idempotency-Key.** A idempotência é natural: a cobrança é travada (`FOR
+UPDATE`) antes de tudo. Quem já pagou e manda de novo recebe o mesmo pagamento
+(`Idempotent-Replayed`); outra pessoa recebe 409. Teste: 20 pessoas pagando a mesma cobrança ao
+mesmo tempo, 1 paga e 19 levam 409; a mesma pessoa mandando 20 vezes paga uma.
+
+**Estados**, que o banco só deixa andar para a frente
+([`V5__cobrancas.sql`](src/main/resources/db/migration/V5__cobrancas.sql)):
+
+```
+pendente ──► paga ──► (estorno, na fase 7)
+    ├──────► expirada
+    └──────► cancelada   (POST /cobrancas/{id}/cancelamento, só o lojista)
+```
+
+O que foi cobrado (valor, recebedor, datas) nunca muda; o pagamento gravado também não; o
+lançamento do pagamento é conferido no commit (mesmas contas, mesmo valor, nada mais); cobrança
+não é apagada.
+
+**Expiração por tarefa agendada**, a cada minuto, só para arrumar o estado guardado. Quem decide
+se ainda dá para pagar é a **hora**, conferida no pagamento: com a tarefa atrasada (ou desligada,
+como nos testes), uma cobrança vencida já aparece como `expirada` e não é paga.
+
+**Pagamento conta nos limites** diário e noturno junto com as transferências: separados, daria
+para mandar R$ 1.000 de madrugada por transferência e esvaziar o resto pagando cobranças.
+
+| Rota | O que faz |
+| --- | --- |
+| `POST /cobrancas` | Cria; devolve `qr` |
+| `GET /cobrancas`, `GET /cobrancas/{id}` | As minhas (as 100 mais recentes) / uma; a de outro lojista é 404 |
+| `POST /cobrancas/{id}/cancelamento` | Cancela uma pendente |
+| `POST /pagamentos/consulta` `{qr}` | O que vou pagar, com dados do servidor |
+| `POST /pagamentos` `{qr}` | Paga |
 
 ## Rodando
 

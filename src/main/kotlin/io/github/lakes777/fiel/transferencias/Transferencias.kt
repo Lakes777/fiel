@@ -31,8 +31,8 @@ import java.time.Clock
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 import java.util.HexFormat
-import java.util.Locale
 
 data class PedidoDeTransferencia(
     @NotBlank @Size(max = 254) val chave: String,
@@ -64,6 +64,7 @@ data class TransferenciaFeita(
 class Transferencias(
     private val jdbc: JdbcClient,
     private val razao: Razao,
+    private val saidas: Saidas,
     private val relogio: Clock,
     transacoes: PlatformTransactionManager,
 ) {
@@ -134,8 +135,8 @@ class Transferencias(
         if (para == de) throw PedidoInvalido("esta chave é da sua própria carteira")
 
         razao.travar(listOf(de, para))
-        val agora = relogio.instant()
-        exigirSaldoELimite(de, valor, agora)
+        val agora = agora()
+        saidas.exigirSaldoELimite(de, valor, agora)
 
         val recebedor = mascararNome(nomeDoRecebedor)
         val lancamento =
@@ -167,23 +168,6 @@ class Transferencias(
         return TransferenciaFeita(id, valor.valor, recebedor, agora)
     }
 
-    /** Só depois de [Razao.travar]: com a conta travada, nenhuma outra saída muda estes números. */
-    private fun exigirSaldoELimite(
-        de: Long,
-        valor: Centavos,
-        agora: Instant,
-    ) {
-        val saldo = razao.saldo(de)
-        if (saldo < valor) throw RegraDeNegocio("saldo insuficiente: você tem ${reais(saldo)}")
-        val noDia = enviadoDesde(de, Limites.inicioDoDia(agora))
-        val naNoite = Limites.inicioDaNoite(agora)?.let { enviadoDesde(de, it) }
-        val disponivel = Limites.disponivel(noDia, naNoite)
-        if (disponivel < valor) {
-            val qual = if (naNoite != null && Limites.NOITE - naNoite < Limites.DIA - noDia) "noturno" else "diário"
-            throw RegraDeNegocio("passa do limite $qual; ainda dá para mandar ${reais(disponivel)}")
-        }
-    }
-
     private fun anterior(
         usuarioId: Long,
         chaveDeIdempotencia: String,
@@ -201,22 +185,6 @@ class Transferencias(
             .optional()
             .orElse(null)
 
-    private fun enviadoDesde(
-        conta: Long,
-        inicio: Instant,
-    ) = Centavos(
-        jdbc
-            .sql(
-                """
-                select coalesce(sum(valor), 0)::bigint from transferencia
-                where de_conta = :conta and criada_em >= :inicio
-                """.trimIndent(),
-            ).param("conta", conta)
-            .param("inicio", OffsetDateTime.ofInstant(inicio, ZoneOffset.UTC))
-            .query(Long::class.java)
-            .single(),
-    )
-
     private fun ResultSet.transferencia() =
         TransferenciaFeita(
             getLong("id"),
@@ -224,6 +192,9 @@ class Transferencias(
             mascararNome(getString("nome")),
             getObject("criada_em", OffsetDateTime::class.java).toInstant(),
         )
+
+    /** A hora com a precisão do Postgres (microssegundos): a resposta repetida mostra a mesma hora da primeira. */
+    private fun agora() = relogio.instant().truncatedTo(ChronoUnit.MICROS)
 
     companion object {
         /** ASCII visível, sem espaço: cabe um UUID, um ULID ou o que o cliente preferir. */
@@ -237,12 +208,6 @@ class Transferencias(
             HexFormat.of().formatHex(
                 MessageDigest.getInstance("SHA-256").digest("$chave\n$valorCentavos".toByteArray()),
             )
-
-        /** 123456 centavos -> "R$ 1.234,56". */
-        fun reais(valor: Centavos): String =
-            "R$ " + String.format(Locale.forLanguageTag("pt-BR"), "%,.2f", valor.valor / CENTAVOS_POR_REAL)
-
-        private const val CENTAVOS_POR_REAL = 100.0
     }
 }
 

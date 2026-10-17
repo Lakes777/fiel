@@ -39,7 +39,7 @@ class LimitesTest {
 
     @Test
     fun `valores em reais no formato brasileiro`() {
-        assertEquals("R$ 0,05", Transferencias.reais(Centavos(5)))
-        assertEquals("R$ 1.234,56", Transferencias.reais(Centavos(123_456)))
+        assertEquals("R$ 0,05", Saidas.reais(Centavos(5)))
+        assertEquals("R$ 1.234,56", Saidas.reais(Centavos(123_456)))
     }
 }

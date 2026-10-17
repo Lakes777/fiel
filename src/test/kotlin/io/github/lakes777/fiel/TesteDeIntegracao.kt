@@ -24,6 +24,10 @@ import org.springframework.context.annotation.Import
         "server.servlet.session.cookie.secure=false",
         "fiel.limite.cadastros-por-hora=1000000",
         "fiel.limite.transferencias-por-minuto=1000000",
+        "fiel.limite.cobrancas-por-minuto=1000000",
+        "fiel.limite.pagamentos-por-minuto=1000000",
+        // A expiração das cobranças roda quando o teste chama, com o relógio parado
+        "fiel.cobrancas.expirar-automaticamente=false",
     ],
 )
 @AutoConfigureMockMvc

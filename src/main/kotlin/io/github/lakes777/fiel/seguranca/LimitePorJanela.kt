@@ -79,6 +79,8 @@ class LimitePorJanela(
 class LimitesDeUso(
     @Value("\${fiel.limite.cadastros-por-hora:10}") cadastrosPorHora: Int,
     @Value("\${fiel.limite.transferencias-por-minuto:30}") transferenciasPorMinuto: Int,
+    @Value("\${fiel.limite.cobrancas-por-minuto:30}") cobrancasPorMinuto: Int,
+    @Value("\${fiel.limite.pagamentos-por-minuto:30}") pagamentosPorMinuto: Int,
 ) {
     /**
      * Tentativas de login por e-mail, contadas ANTES de conferir a senha: 200 pedidos ao mesmo tempo
@@ -101,4 +103,10 @@ class LimitesDeUso(
      * é o que impede usar transferências de 1 centavo para varrer chaves.
      */
     val transferencia = LimitePorJanela(maximo = transferenciasPorMinuto, janela = Duration.ofMinutes(1))
+
+    /** Cobranças criadas por usuário: cada uma é uma linha no banco, de graça para quem cria. */
+    val cobranca = LimitePorJanela(maximo = cobrancasPorMinuto, janela = Duration.ofMinutes(1))
+
+    /** Consultas e pagamentos de QR por usuário. */
+    val pagamento = LimitePorJanela(maximo = pagamentosPorMinuto, janela = Duration.ofMinutes(1))
 }
