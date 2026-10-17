@@ -40,12 +40,25 @@ class Navegador(
 
     fun delete(caminho: String) = enviar("DELETE", caminho)
 
+    /** Transfere pela chave, com uma Idempotency-Key nova a cada chamada se nenhuma for dada. */
+    fun transferir(
+        chave: String,
+        valorCentavos: Long,
+        idempotencia: String? = UUID.randomUUID().toString(),
+    ) = enviar(
+        "POST",
+        "/transferencias",
+        mapOf("chave" to chave, "valorCentavos" to valorCentavos),
+        cabecalhos = idempotencia?.let { mapOf("Idempotency-Key" to it) } ?: emptyMap(),
+    )
+
     /** [comCsrf] = false simula um site de fora: o cookie vai, mas ele não consegue ler o token. */
     fun enviar(
         metodo: String,
         caminho: String,
         corpo: Any? = null,
         comCsrf: Boolean = true,
+        cabecalhos: Map<String, String> = emptyMap(),
     ): Resposta {
         if (metodo != "GET" && comCsrf && cookie("XSRF-TOKEN") == null) get("/csrf")
         val pedido =
@@ -60,6 +73,7 @@ class Navegador(
                     },
                 ).header("Content-Type", "application/json")
         if (comCsrf) cookie("XSRF-TOKEN")?.let { pedido.header("X-XSRF-TOKEN", it) }
+        cabecalhos.forEach(pedido::header)
         val resposta = http.send(pedido.build(), HttpResponse.BodyHandlers.ofString())
         return Resposta(resposta.statusCode(), resposta.body(), resposta.headers())
     }

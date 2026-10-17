@@ -3,7 +3,6 @@ package io.github.lakes777.fiel.razao
 import org.springframework.jdbc.core.simple.JdbcClient
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.math.BigDecimal
 import java.sql.ResultSet
 import java.time.OffsetDateTime
 
@@ -24,10 +23,15 @@ class Razao(
     /**
      * Grava o lançamento e as partidas numa transação só. O banco confere a soma zero no commit:
      * se ela não fechar, nada fica gravado.
+     *
+     * As contas são travadas antes, sempre em ordem de id: Ana -> Bob e Bob -> Ana ao mesmo tempo
+     * travam na mesma ordem, e uma espera a outra em vez de as duas se esperarem para sempre.
+     * Quem chama dentro de uma transação já aberta pode travar antes (para conferir saldo e limites)
+     * com [travar]; travar de novo a mesma conta na mesma transação não espera nada.
      */
     @Transactional
     fun registrar(novo: NovoLancamento): Lancamento {
-        exigirContas(novo.partidas.map { it.contaId })
+        travar(novo.partidas.map { it.contaId })
         val (id, criadoEm) =
             jdbc
                 .sql("insert into lancamento (descricao) values (:descricao) returning id, criado_em")
@@ -52,16 +56,30 @@ class Razao(
         return Lancamento(id, novo.descricao, criadoEm, partidas.sortedBy { it.id })
     }
 
-    fun saldo(contaId: Long): Centavos {
-        exigirContas(listOf(contaId))
-        val soma =
+    /**
+     * Trava as contas (SELECT ... FOR UPDATE, em ordem de id) até o fim da transação de quem chamou.
+     * Só faz sentido dentro de uma transação: fora dela a trava acaba junto com o comando.
+     */
+    fun travar(ids: Collection<Long>) {
+        val travadas =
             jdbc
-                .sql("select coalesce(sum(valor), 0) from partida where conta_id = :conta")
-                .param("conta", contaId)
-                .query(BigDecimal::class.java)
-                .single()
-        return Centavos(soma.longValueExact())
+                .sql("select id from conta where id = any(:ids::bigint[]) order by id for update")
+                .param("ids", ids.toTypedArray())
+                .query { rs, _ -> rs.getLong("id") }
+                .set()
+        val faltando = ids.toSet() - travadas
+        if (faltando.isNotEmpty()) throw ContaNaoEncontrada(faltando)
     }
+
+    /** O saldo guardado na conta, que o gatilho das partidas mantém igual à soma delas (V4). */
+    fun saldo(contaId: Long): Centavos =
+        jdbc
+            .sql("select saldo from conta where id = :conta")
+            .param("conta", contaId)
+            .query(Long::class.java)
+            .optional()
+            .map(::Centavos)
+            .orElseThrow { ContaNaoEncontrada(listOf(contaId)) }
 
     /** Os movimentos mais recentes primeiro, cada um com o saldo da conta logo depois dele. */
     fun extrato(

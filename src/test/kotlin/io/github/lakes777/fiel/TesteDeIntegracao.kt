@@ -13,14 +13,19 @@ import org.springframework.context.annotation.Import
  *
  * A API escuta numa porta de verdade, para o [Navegador] testar cookies e CSRF como um navegador.
  * O cookie de sessão perde o "Secure" só aqui: o cliente HTTP do Java não devolve cookie seguro por http.
+ * O relógio da API é o [RelogioDeTeste], que um teste pode parar numa hora.
  */
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     // Todos os testes cadastram do mesmo IP (127.0.0.1): o limite de cadastros por IP fica alto aqui
-    properties = ["server.servlet.session.cookie.secure=false", "fiel.limite.cadastros-por-hora=1000000"],
+    properties = [
+        "server.servlet.session.cookie.secure=false",
+        "fiel.limite.cadastros-por-hora=1000000",
+        "fiel.limite.transferencias-por-minuto=1000000",
+    ],
 )
 @AutoConfigureMockMvc
-@Import(TestcontainersConfiguration::class, ContadorDeSenhas::class)
+@Import(TestcontainersConfiguration::class, ContadorDeSenhas::class, ConfiguracaoDoRelogio::class)
 annotation class TesteDeIntegracao

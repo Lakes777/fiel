@@ -32,6 +32,11 @@ class Conflito(
     mensagem: String,
 ) : ErroDaApi(HttpStatus.CONFLICT, mensagem)
 
+/** O pedido está bem escrito, mas a regra não deixa: saldo insuficiente, limite passado. */
+class RegraDeNegocio(
+    mensagem: String,
+) : ErroDaApi(HttpStatus.UNPROCESSABLE_CONTENT, mensagem)
+
 class MuitasTentativas(
     val esperarSegundos: Long,
 ) : ErroDaApi(HttpStatus.TOO_MANY_REQUESTS, "muitas tentativas; tente de novo em $esperarSegundos s")

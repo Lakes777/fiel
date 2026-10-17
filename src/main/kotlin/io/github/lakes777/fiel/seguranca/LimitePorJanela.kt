@@ -78,6 +78,7 @@ class LimitePorJanela(
 @Component
 class LimitesDeUso(
     @Value("\${fiel.limite.cadastros-por-hora:10}") cadastrosPorHora: Int,
+    @Value("\${fiel.limite.transferencias-por-minuto:30}") transferenciasPorMinuto: Int,
 ) {
     /**
      * Tentativas de login por e-mail, contadas ANTES de conferir a senha: 200 pedidos ao mesmo tempo
@@ -88,10 +89,16 @@ class LimitesDeUso(
 
     /**
      * Cadastros por IP. Sem ele, criar contas seria de graça: cada uma ganha o próprio limite de
-     * consultas (e, na fase 4, o próprio bônus para juntar), e o 409 do cadastro diria quem tem conta.
+     * consultas (e o próprio bônus para juntar: risco aceito, ver README), e o 409 do cadastro diria quem tem conta.
      */
     val cadastro = LimitePorJanela(maximo = cadastrosPorHora, janela = Duration.ofHours(1))
 
     /** Consultas de chave por usuário: impede varrer chaves para descobrir quem tem conta. */
     val consultaDeChave = LimitePorJanela(maximo = 30, janela = Duration.ofMinutes(1))
+
+    /**
+     * Pedidos de transferência por usuário. Não é o limite de dinheiro (esse é Limites, por valor):
+     * é o que impede usar transferências de 1 centavo para varrer chaves.
+     */
+    val transferencia = LimitePorJanela(maximo = transferenciasPorMinuto, janela = Duration.ofMinutes(1))
 }

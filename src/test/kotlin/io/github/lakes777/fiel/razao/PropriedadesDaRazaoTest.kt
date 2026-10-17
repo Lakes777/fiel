@@ -53,6 +53,8 @@ class PropriedadesDaRazaoTest {
                 }
                 assertEquals(esperado.toList(), contas.map { razao.saldo(it).valor })
                 assertEquals(0L, contas.sumOf { razao.saldo(it).valor })
+                // O saldo guardado na conta (V4) é a soma das partidas dela
+                assertEquals(esperado.toList(), contas.map(::somaDasPartidas))
                 for (conta in contas) {
                     val extrato = razao.extrato(conta, limite = 500)
                     // O saldo depois do movimento mais recente é o saldo da conta
@@ -91,4 +93,11 @@ class PropriedadesDaRazaoTest {
             }
             assertEquals(listOf(0L, 0L, 0L), contas.map { razao.saldo(it).valor })
         }
+
+    private fun somaDasPartidas(conta: Long) =
+        jdbc
+            .sql("select coalesce(sum(valor), 0)::bigint from partida where conta_id = :c")
+            .param("c", conta)
+            .query(Long::class.java)
+            .single()
 }

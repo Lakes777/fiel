@@ -18,7 +18,7 @@ em outra, e o próprio banco de dados recusa um lançamento que não feche em ze
 - [x] **1. Esqueleto:** Kotlin + Spring Boot 4, Gradle (Kotlin DSL), PostgreSQL 17 com Flyway, `/saude`, erros no formato RFC 9457, testes com Testcontainers, ktlint e detekt no CI
 - [x] **2. Razão contábil:** partidas dobradas, valores em centavos (`Long`), lançamentos imutáveis e soma zero conferida pelo banco; testes de propriedade
 - [x] **3. Usuários e chaves:** Spring Security com sessão no Postgres e CSRF, cada um só enxerga as próprias contas
-- [ ] **4. Transferências:** `Idempotency-Key`, saldo nunca negativo, limite diário e noturno, teste com 100 transferências simultâneas
+- [x] **4. Transferências:** `Idempotency-Key`, saldo nunca negativo, limite diário e noturno, teste com 100 transferências simultâneas
 - [ ] **5. Cobranças com QR:** formato TLV com CRC16, estados e expiração
 - [ ] **6. Avisos ao lojista (webhooks):** outbox, novas tentativas com espera crescente, assinatura HMAC com carimbo de tempo, fila de falhas
 - [ ] **7. Estorno e conciliação noturna:** com aviso no Telegram
@@ -29,8 +29,9 @@ em outra, e o próprio banco de dados recusa um lançamento que não feche em ze
 
 Todo dinheiro vive num livro-razão de **partidas dobradas**. Um *lançamento* é um fato ("Ana
 pagou R$ 10,50 à Loja"); cada *partida* diz quanto ele muda o saldo de uma conta (positivo entra,
-negativo sai). O saldo de uma conta é a soma das partidas dela; não existe coluna de saldo que
-possa ficar fora de sincronia.
+negativo sai). O saldo de uma conta é a soma das partidas dela. Ele fica guardado na conta para
+ler rápido, mas só um gatilho das partidas mexe nele (veja [Transferências](#transferências)), e
+os testes de propriedade conferem que ele bate com a soma.
 
 | Ana paga R$ 10,50 à Loja | Conta | Valor (centavos) |
 | --- | --- | --- |
@@ -114,6 +115,64 @@ testes seguram uma transação aberta nos dois níveis para provar que a segunda
 | `GET /contas/{id}/extrato?limite=50` | Extrato, mais recente primeiro, com o saldo depois de cada movimento |
 | `GET /chaves`, `POST /chaves` `{tipo}`, `DELETE /chaves/{id}` | Minhas chaves (`email` ou `aleatoria`) |
 | `POST /chaves/consulta` `{valor}` | De quem é a chave ("Ana S."); POST para a chave não ir parar na URL |
+
+## Transferências
+
+`POST /transferencias` com `{chave, valorCentavos}` manda dinheiro da carteira de quem está logado
+para a carteira dona da chave. A resposta mostra o recebedor só como "Bob L.".
+
+**`Idempotency-Key` obrigatória.** Se a rede cai depois do envio, o app não sabe se a
+transferência foi feita e manda de novo. Com a mesma chave, a API devolve a **mesma**
+transferência (cabeçalho `Idempotent-Replayed: true`), sem cobrar duas vezes. A mesma chave com
+outro pedido (outro valor, outro recebedor) é recusada com 422. Vinte cópias do mesmo pedido
+mandadas ao mesmo tempo fazem uma transferência só: a chave é travada com
+`pg_advisory_xact_lock` e as cópias esperam a primeira terminar. A chave vale por usuário, e uma
+transferência recusada (saldo, limite) não fica guardada, então repetir tenta de novo.
+
+**Ninguém gasta o mesmo dinheiro duas vezes.** Dentro de uma transação, as duas contas são
+travadas (`SELECT ... FOR UPDATE`) **sempre em ordem de id**, e só então saldo e limites são
+conferidos. Ana -> Bob e Bob -> Ana ao mesmo tempo travam na mesma ordem: uma espera a outra, sem
+deadlock. Testes: 100 transferências simultâneas de R$ 15 com R$ 1.000 de saldo dão exatamente 66
+aceitas e 34 recusadas; 60 cruzadas entre Ana e Bob terminam todas, com os saldos de volta ao
+começo.
+
+**O banco é a última palavra** ([`V4__transferencias.sql`](src/main/resources/db/migration/V4__transferencias.sql)):
+
+- o saldo fica guardado na conta, e só o gatilho das partidas mexe nele. Ler o saldo deixou de
+  ser uma soma de todo o histórico, e os testes de propriedade conferem que ele bate com a soma;
+- `check (saldo >= 0)` em toda carteira: nem um lançamento escrito à mão no razão deixa uma
+  carteira negativa. Na contraprova (sem a trava da aplicação), as 100 simultâneas deram 500 em
+  algumas, mas nenhum centavo a mais saiu;
+- conta nasce com saldo zero: um INSERT à mão não cria carteira com dinheiro que o razão não conhece;
+- a transferência confere o próprio lançamento (mesmas contas, mesmo valor, nada mais), no
+  **commit**, para nem uma partida acrescentada depois passar; sai só da carteira de quem pediu e
+  nunca muda nem é apagada.
+
+**Limites**, no horário de Brasília, como a regra do Banco Central para a noite:
+
+| Período | Limite |
+| --- | --- |
+| Por dia (a partir da meia-noite) | R$ 5.000,00 |
+| À noite (20h às 6h, atravessando a meia-noite) | R$ 1.000,00 |
+
+Os dois valem ao mesmo tempo; a mensagem do 422 diz qual estourou e quanto ainda dá para mandar.
+A hora vem de um `Clock` injetado: os testes param o relógio às 23h, à 1h, às 6h. Também há um
+limite de 30 pedidos por minuto por usuário, para transferências de 1 centavo não servirem para
+varrer chaves.
+
+**Risco aceito: juntar bônus.** Cada cadastro ganha R$ 1.000, e com transferências dá para criar
+contas e mandar tudo para uma só. O freio é o limite de 10 cadastros por hora por IP. Um banco de
+verdade fecharia a porta com verificação de identidade, que este projeto não faz de propósito
+(nada de CPF nem dado real). Travar o bônus só para pagamentos não resolveria: o dinheiro sairia
+pela cobrança de uma "loja" da mesma pessoa.
+
+| Status | Quando |
+| --- | --- |
+| 201 | Feita (ou repetida, com `Idempotent-Replayed`) |
+| 400 | Sem `Idempotency-Key`, valor zero ou negativo, chave da própria carteira |
+| 404 | Chave que não existe |
+| 422 | Saldo insuficiente, limite passado, `Idempotency-Key` já usada em outro pedido |
+| 429 | Mais de 30 pedidos por minuto |
 
 ## Rodando
 
