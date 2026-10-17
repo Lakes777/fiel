@@ -13,6 +13,12 @@ export function destinoDaVolta(volta: string | null): string {
     return volta;
 }
 
+/** O mesmo ?volta= levado para a outra tela de acesso (Entrar <-> Criar conta), se é um caminho aceito */
+export function comVolta(caminho: string, volta: string | null): string {
+    if (!volta || destinoDaVolta(volta) !== volta) return caminho;
+    return `${caminho}?volta=${encodeURIComponent(volta)}`;
+}
+
 /** O bcrypt só usa 72 bytes: acento e símbolo ocupam mais de um, então conta bytes, não letras */
 export const MIN_SENHA = 10;
 export const MAX_SENHA_BYTES = 72;

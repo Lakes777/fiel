@@ -109,24 +109,68 @@ describe('Pagar com QR', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('409: outra pessoa pagou antes', async () => {
-        abrir(
-            {
-                'POST /pagamentos/consulta': { corpo: cobranca() },
-                'POST /pagamentos': { status: 409 },
-            },
-            `/pagar?qr=${encodeURIComponent(QR)}`,
-        );
+    it.each([
+        ['paga', 'Esta cobrança já foi paga.'],
+        ['cancelada', 'Quem cobrou cancelou esta cobrança.'],
+    ] as const)(
+        '409: a cobrança virou %s depois de conferida, e a tela mostra o estado de verdade',
+        async (estado, motivo) => {
+            let consultas = 0;
+            const falsa = abrir(
+                {
+                    'POST /pagamentos/consulta': () => ({
+                        corpo: cobranca(consultas++ ? { estado } : {}),
+                    }),
+                    'POST /pagamentos': {
+                        status: 409,
+                        corpo: { detail: `esta cobrança está ${estado}` },
+                    },
+                },
+                `/pagar?qr=${encodeURIComponent(QR)}`,
+            );
+            const usuario = userEvent.setup();
+            await usuario.click(
+                await screen.findByRole('button', { name: 'Pagar R$ 25,50' }),
+            );
+            expect(await screen.findByRole('alert')).toHaveTextContent(
+                'A cobrança mudou enquanto você conferia. Nada foi pago.',
+            );
+            expect(await screen.findByText(motivo)).toBeInTheDocument();
+            expect(
+                screen.queryByRole('button', { name: /^Pagar/ }),
+            ).not.toBeInTheDocument();
+            expect(falsa.pedidos('POST /pagamentos/consulta')).toHaveLength(2);
+        },
+    );
+
+    it('enquanto confere, o QR não muda, e paga o QR que foi conferido', async () => {
+        let soltarA: () => void = () => {};
+        const falsa = abrir({
+            'POST /pagamentos/consulta': (p) =>
+                (p.corpo as { qr: string }).qr === QR
+                    ? new Promise((pronto) => {
+                          soltarA = () => pronto({ corpo: cobranca() });
+                      })
+                    : {
+                          corpo: cobranca({
+                              recebedor: 'Eva M.',
+                              valorCentavos: 9900,
+                          }),
+                      },
+            'POST /pagamentos': { status: 201, corpo: PAGO },
+        });
         const usuario = userEvent.setup();
+        const campo = screen.getByLabelText('Cole o código do QR');
+        await usuario.click(campo);
+        await usuario.paste(QR);
+        await usuario.click(screen.getByRole('button', { name: 'Conferir' }));
+        // Enquanto confere, o campo não muda
+        expect(campo).toHaveAttribute('readonly');
+        soltarA();
         await usuario.click(
             await screen.findByRole('button', { name: 'Pagar R$ 25,50' }),
         );
-        expect(await screen.findByRole('alert')).toHaveTextContent(
-            'Outra pessoa pagou esta cobrança antes de você.',
-        );
-        expect(
-            screen.queryByRole('button', { name: /^Pagar/ }),
-        ).not.toBeInTheDocument();
+        expect(falsa.pedidos('POST /pagamentos')[0].corpo).toEqual({ qr: QR });
     });
 
     it('422: mostra a mensagem da API', async () => {

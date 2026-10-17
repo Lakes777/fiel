@@ -30,6 +30,9 @@ export function Pagar() {
     const doLink = busca.get('qr')?.trim() ?? '';
     const [qr, setQr] = useState(doLink);
     const [cobranca, setCobranca] = useState<CobrancaParaPagar | null>(null);
+    // O QR que gerou a `cobranca` na tela: é ele que se paga, não o texto que está no campo agora
+    const [qrConferido, setQrConferido] = useState('');
+    const consulta = useRef(0);
     const [paga, setPaga] = useState<PagamentoFeito | null>(null);
     const [erro, setErro] = useState<string | null>(null);
     const [enviando, setEnviando] = useState(false);
@@ -48,16 +51,23 @@ export function Pagar() {
             );
             return;
         }
+        // Só a resposta da última consulta vale: uma mais velha que chegue atrasada é descartada
+        const esta = ++consulta.current;
         setEnviando(true);
         setErro(null);
         try {
-            setCobranca(
-                await api<CobrancaParaPagar>('/pagamentos/consulta', {
+            const achada = await api<CobrancaParaPagar>(
+                '/pagamentos/consulta',
+                {
                     metodo: 'POST',
                     corpo: { qr: limpo },
-                }),
+                },
             );
+            if (esta !== consulta.current) return;
+            setCobranca(achada);
+            setQrConferido(limpo);
         } catch (e) {
+            if (esta !== consulta.current) return;
             setErro(
                 e instanceof ErroDaApi && e.status === 404
                     ? 'Nenhuma cobrança com este código.'
@@ -84,13 +94,27 @@ export function Pagar() {
             setPaga(
                 await api<PagamentoFeito>('/pagamentos', {
                     metodo: 'POST',
-                    corpo: { qr: qr.trim() },
+                    corpo: { qr: qrConferido },
                 }),
             );
         } catch (e) {
             if (e instanceof ErroDaApi && e.status === 409) {
-                setErro('Outra pessoa pagou esta cobrança antes de você.');
-                setCobranca((c) => (c ? { ...c, estado: 'paga' } : c));
+                // Mudou de estado depois da conferência: paga por outra pessoa, cancelada ou vencida.
+                // Consulta de novo para mostrar o estado de verdade
+                setErro(
+                    'A cobrança mudou enquanto você conferia. Nada foi pago.',
+                );
+                try {
+                    setCobranca(
+                        await api<CobrancaParaPagar>('/pagamentos/consulta', {
+                            metodo: 'POST',
+                            corpo: { qr: qrConferido },
+                        }),
+                    );
+                } catch {
+                    // Sem o estado novo, volta para o "Conferir" em vez de chutar um
+                    setCobranca(null);
+                }
             } else {
                 setErro(mensagemDe(e));
             }
@@ -101,6 +125,7 @@ export function Pagar() {
 
     function outro() {
         setQr('');
+        setQrConferido('');
         setCobranca(null);
         setPaga(null);
         setErro(null);
@@ -169,7 +194,9 @@ export function Pagar() {
                                     className="codigo-qr"
                                     rows={3}
                                     value={qr}
+                                    readOnly={enviando}
                                     onChange={(e) => {
+                                        consulta.current++;
                                         setQr(e.target.value);
                                         setCobranca(null);
                                         setErro(null);

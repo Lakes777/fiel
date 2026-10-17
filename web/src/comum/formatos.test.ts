@@ -25,6 +25,16 @@ describe('dinheiro', () => {
         expect(lerReais('1,234')).toBeNull();
         expect(lerReais('')).toBeNull();
     });
+
+    it('lê ponto como milhar só em grupos de três, e como decimal no fim sem vírgula', () => {
+        expect(lerReais('12.50')).toBe(1250);
+        expect(lerReais('12.5')).toBe(1250);
+        expect(lerReais('1.234')).toBe(123400);
+        expect(lerReais('1.234.567,89')).toBe(123456789);
+        expect(lerReais('1.2345')).toBeNull();
+        expect(lerReais('12.34,56')).toBeNull();
+        expect(lerReais('1.234.5')).toBeNull();
+    });
 });
 
 describe('datas no horário de Brasília', () => {

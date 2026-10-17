@@ -1,16 +1,25 @@
 import { useState, type FormEvent } from 'react';
-import { Link, Navigate } from 'react-router';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router';
 import { mensagemDe } from '../api/cliente';
 import { useSessao } from '../api/hooks';
-import { cadastrar } from '../api/sessao';
+import { cadastrar, entrar } from '../api/sessao';
 import { Balanca } from '../comum/Marca';
 import { useTitulo } from '../comum/titulo';
-import { MAX_SENHA_BYTES, MIN_SENHA, problemaDaSenha } from './regras';
+import {
+    MAX_SENHA_BYTES,
+    MIN_SENHA,
+    comVolta,
+    destinoDaVolta,
+    problemaDaSenha,
+} from './regras';
 import './paginas.css';
 
 export function Cadastro() {
     useTitulo('Criar conta');
     const { usuario } = useSessao();
+    const navegar = useNavigate();
+    const [busca] = useSearchParams();
+    const volta = busca.get('volta');
     const [nome, setNome] = useState('');
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
@@ -19,8 +28,8 @@ export function Cadastro() {
     const [erro, setErro] = useState<string | null>(null);
     const [enviando, setEnviando] = useState(false);
 
-    // Cadastrou (cadastrar já entra) ou já estava logado: vai para a carteira
-    if (usuario) return <Navigate to="/carteira" replace />;
+    // Cadastrou e entrou, ou já estava logado: vai para onde ia (a carteira, se nada foi pedido)
+    if (usuario) return <Navigate to={destinoDaVolta(volta)} replace />;
 
     const problema = tentou ? problemaDaSenha(senha) : null;
 
@@ -37,6 +46,16 @@ export function Cadastro() {
             // 409 (e-mail já usado), 429 e o resto: a mensagem da API já é uma frase
             setErro(mensagemDe(e));
             setEnviando(false);
+            return;
+        }
+        try {
+            await entrar(email.trim(), senha);
+        } catch {
+            // A conta já existe: mostrar o erro aqui faria a pessoa reenviar e levar um 409
+            navegar(comVolta('/entrar', volta), {
+                replace: true,
+                state: { contaCriada: email.trim() },
+            });
         }
     }
 
@@ -122,7 +141,8 @@ export function Cadastro() {
                     </button>
                 </form>
                 <p className="acesso-troca">
-                    Já tem conta? <Link to="/entrar">Entrar</Link>
+                    Já tem conta?{' '}
+                    <Link to={comVolta('/entrar', volta)}>Entrar</Link>
                 </p>
             </div>
         </main>

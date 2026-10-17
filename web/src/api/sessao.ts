@@ -49,17 +49,16 @@ export async function entrar(email: string, senha: string): Promise<Usuario> {
     return usuario;
 }
 
-/** Cadastra e já entra (o cadastro não abre sessão sozinho) */
+/** Só cria a conta: o cadastro não abre sessão, quem chama entra depois (e trata se isso falhar) */
 export async function cadastrar(
     nome: string,
     email: string,
     senha: string,
 ): Promise<Usuario> {
-    await api<Usuario>('/cadastro', {
+    return api<Usuario>('/cadastro', {
         metodo: 'POST',
         corpo: { nome, email, senha },
     });
-    return entrar(email, senha);
 }
 
 export async function sair(): Promise<void> {

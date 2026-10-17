@@ -1,12 +1,40 @@
-import { screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { apiFalsa } from '../teste/api-falsa';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { ANA, renderNaRota } from '../teste/render';
+import { Entrar } from './Entrar';
 import { Cadastro } from './Cadastro';
 import { problemaDaSenha } from './regras';
 
 function abrir() {
     renderNaRota(<Cadastro />, { rota: '/cadastro', caminho: '/cadastro' });
+}
+
+/** Cadastro e Entrar de verdade; qualquer outra rota mostra onde a tela foi parar */
+function Lugar() {
+    const local = useLocation();
+    return <p>em {local.pathname + local.search}</p>;
+}
+
+function abrirComEntrar(caminho: string) {
+    render(
+        <MemoryRouter initialEntries={[caminho]}>
+            <Routes>
+                <Route path="/cadastro" element={<Cadastro />} />
+                <Route
+                    path="/entrar"
+                    element={
+                        <>
+                            <Lugar />
+                            <Entrar />
+                        </>
+                    }
+                />
+                <Route path="*" element={<Lugar />} />
+            </Routes>
+        </MemoryRouter>,
+    );
 }
 
 async function preencher(senha: string) {
@@ -78,6 +106,43 @@ describe('Cadastro', () => {
             email: 'ana@exemplo.com',
             senha: 'senha-forte-123',
         });
+    });
+
+    it('conta criada mas entrar falhou: manda para Entrar com o aviso, sem reenviar o cadastro', async () => {
+        const falsa = apiFalsa({
+            'POST /cadastro': { status: 201, corpo: ANA },
+            'POST /sessao': { status: 429 },
+        });
+        abrirComEntrar('/cadastro?volta=%2Floja');
+        await preencher('senha-forte-123');
+        expect(await screen.findByRole('status')).toHaveTextContent(
+            'Conta criada. Entre com sua senha.',
+        );
+        expect(
+            screen.getByText('em /entrar?volta=%2Floja'),
+        ).toBeInTheDocument();
+        expect(screen.getByLabelText('E-mail')).toHaveValue('ana@exemplo.com');
+        expect(screen.getByLabelText('Senha')).toHaveValue('');
+        expect(falsa.pedidos('POST /cadastro')).toHaveLength(1);
+    });
+
+    it('cadastra, entra e volta para onde a pessoa ia', async () => {
+        apiFalsa({
+            'POST /cadastro': { status: 201, corpo: ANA },
+            'POST /sessao': { corpo: ANA },
+        });
+        abrirComEntrar('/cadastro?volta=%2Floja');
+        await preencher('senha-forte-123');
+        expect(await screen.findByText('em /loja')).toBeInTheDocument();
+    });
+
+    it('o link de entrar leva o volta junto', () => {
+        apiFalsa({});
+        abrirComEntrar('/cadastro?volta=%2Floja');
+        expect(screen.getByRole('link', { name: 'Entrar' })).toHaveAttribute(
+            'href',
+            '/entrar?volta=%2Floja',
+        );
     });
 
     it('avisa que nada é dinheiro de verdade e não pede CPF', () => {

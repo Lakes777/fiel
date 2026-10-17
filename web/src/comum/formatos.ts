@@ -16,14 +16,20 @@ export function reaisComSinal(centavos: number): string {
     return centavos > 0 ? `+${reais(centavos)}` : reais(centavos);
 }
 
-/** "R$ 12,34" ou "12,34" digitado -> 1234 centavos; null se não for um valor */
+/**
+ * "R$ 12,34" ou "12,34" digitado -> 1234 centavos; null se não for um valor. O ponto é milhar só
+ * em grupos de três ("1.234" = R$ 1.234,00); sem vírgula, ponto com 1 ou 2 dígitos no fim é a
+ * casa decimal de quem digita como no teclado inglês ("12.50" = R$ 12,50, não R$ 1.250,00)
+ */
 export function lerReais(texto: string): number | null {
-    const limpo = texto
-        .replace(/R\$|\s/g, '')
-        .replace(/\./g, '')
-        .replace(',', '.');
-    if (!/^\d+(\.\d{1,2})?$/.test(limpo)) return null;
-    return Math.round(Number(limpo) * 100);
+    const limpo = texto.replace(/R\$|\s/g, '');
+    const partes =
+        /^(\d+|\d{1,3}(?:\.\d{3})+)(?:,(\d{1,2}))?$/.exec(limpo) ??
+        /^(\d+)\.(\d{1,2})$/.exec(limpo);
+    if (!partes) return null;
+    const inteiro = Number(partes[1].replace(/\./g, ''));
+    const centavos = Number((partes[2] ?? '').padEnd(2, '0'));
+    return inteiro * 100 + centavos;
 }
 
 const FUSO = 'America/Sao_Paulo';

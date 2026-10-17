@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { api, mensagemDe } from '../api/cliente';
 import { useAoVivo, useDados } from '../api/hooks';
 import type {
@@ -41,7 +41,19 @@ function criadaAgora(estado: unknown, id: number): CobrancaDoLojista | null {
 
 function Detalhe({ id }: { id: number }) {
     useTitulo(`Cobrança #${id}`);
-    const recemCriada = criadaAgora(useLocation().state, id);
+    const local = useLocation();
+    const navegar = useNavigate();
+    // Lida uma vez e tirada do histórico: depois de um F5 ou de Voltar, a cobrança velha que
+    // veio junto passaria por "pendente" e um pagamento antigo pareceria recebido agora
+    const [recemCriada] = useState(() => criadaAgora(local.state, id));
+    const temEstado = local.state != null;
+    useEffect(() => {
+        if (temEstado)
+            navegar(`${local.pathname}${local.search}`, {
+                replace: true,
+                state: null,
+            });
+    }, [temEstado, local.pathname, local.search, navegar]);
     const { dados, erro, statusDoErro, recarregar } = useDados<Carregado>(
         async (sinal) => {
             const cobranca = await api<CobrancaDoLojista>(`/cobrancas/${id}`, {

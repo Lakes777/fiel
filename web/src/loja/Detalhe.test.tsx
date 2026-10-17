@@ -1,5 +1,6 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { RouterProvider, createMemoryRouter } from 'react-router';
 import type { CobrancaDoLojista, EstornoFeito } from '../api/tipos';
 import { apiFalsa } from '../teste/api-falsa';
 import { eventosFalsos } from '../teste/preparar';
@@ -155,18 +156,18 @@ describe('Detalhe da cobrança', () => {
         );
     });
 
-    it('estorna: começa no que falta, barra valor acima e reaproveita a chave só depois de erro de rede', async () => {
+    it('estorna: começa no que falta, barra valor acima e reaproveita a chave depois de um 504', async () => {
         let atual: CobrancaDoLojista = umaCobranca({
             estado: 'paga',
             pagaEm: haMinutos(10),
         });
         let estornos: EstornoFeito[] = [];
-        let quedas = 1;
+        let falhas = 1;
         const falsa = apiFalsa({
             'GET /cobrancas/:id': () => ({ corpo: atual }),
             'GET /cobrancas/:id/estornos': () => ({ corpo: estornos }),
             'POST /cobrancas/:id/estornos': (p) => {
-                if (quedas-- > 0) throw new TypeError('Failed to fetch');
+                if (falhas-- > 0) return { status: 504 };
                 const { valorCentavos, motivo } = p.corpo as {
                     valorCentavos: number;
                     motivo: string | null;
@@ -219,7 +220,7 @@ describe('Detalhe da cobrança', () => {
             screen.getByRole('button', { name: 'Confirmar estorno' }),
         );
         expect(await screen.findByRole('alert')).toHaveTextContent(
-            'Sem conexão com o servidor',
+            'Algo deu errado. Tente de novo.',
         );
 
         // De novo, o mesmo pedido: a mesma chave, e o servidor não estorna duas vezes
@@ -273,6 +274,32 @@ describe('Detalhe da cobrança', () => {
         expect(
             screen.getByText('Todo o valor voltou para quem pagou.'),
         ).toBeInTheDocument();
+    });
+
+    it('a cobrança recém-criada que veio junto sai do histórico (F5 não anuncia pagamento velho)', async () => {
+        const criada = umaCobranca();
+        apiFalsa({
+            'GET /cobrancas/:id': {
+                corpo: { ...criada, estado: 'paga', pagaEm: haMinutos(5) },
+            },
+        });
+        logarComo(BOB);
+        const roteador = createMemoryRouter(
+            [{ path: '/loja/*', element: <Loja /> }],
+            {
+                initialEntries: [
+                    { pathname: '/loja/cobrancas/132', state: { criada } },
+                ],
+            },
+        );
+        render(<RouterProvider router={roteador} />);
+
+        // Mostra na hora o que veio junto, sem esperar o servidor
+        expect(
+            screen.getByRole('heading', { name: 'Cobrança #132' }),
+        ).toBeInTheDocument();
+        await waitFor(() => expect(roteador.state.location.state).toBeNull());
+        expect(roteador.state.location.pathname).toBe('/loja/cobrancas/132');
     });
 
     it('cobrança que não existe (ou de outra loja)', async () => {

@@ -6,7 +6,7 @@ import {
     type FormEvent,
     type RefObject,
 } from 'react';
-import { ErroDaApi, api, mensagemDe, novaIdempotencia } from '../api/cliente';
+import { api, mensagemDe, novaIdempotencia } from '../api/cliente';
 import type { CobrancaDoLojista, EstornoFeito } from '../api/tipos';
 import { lerReais, reais } from '../comum/formatos';
 
@@ -99,10 +99,9 @@ export function FormularioDeEstorno({
             pedido.current = null;
             aoFeito(feito);
         } catch (erro) {
-            // O servidor respondeu (409, 422...): o pedido não aconteceu, e a chave pode ir embora.
-            // Sem resposta (status 0): a chave fica para a próxima tentativa
-            if (!(erro instanceof ErroDaApi && erro.status === 0))
-                pedido.current = null;
+            // A chave fica para a próxima tentativa, como na transferência: um 502/504 do proxy (ou
+            // uma queda de rede) não diz se o estorno foi gravado, e o servidor não guarda pedidos
+            // recusados, então repetir a chave depois de um 409/422 também é seguro
             setErroDaApi(mensagemDe(erro));
             setEnviando(false);
             aoErro();

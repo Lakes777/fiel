@@ -1,19 +1,23 @@
 import { useState, type FormEvent } from 'react';
-import { Link, Navigate, useSearchParams } from 'react-router';
+import { Link, Navigate, useLocation, useSearchParams } from 'react-router';
 import { ErroDaApi, mensagemDe } from '../api/cliente';
 import { useSessao } from '../api/hooks';
 import { entrar } from '../api/sessao';
 import { Balanca } from '../comum/Marca';
 import { useTitulo } from '../comum/titulo';
-import { destinoDaVolta } from './regras';
+import { comVolta, destinoDaVolta } from './regras';
 import './paginas.css';
 
 export function Entrar() {
     useTitulo('Entrar');
     const { usuario } = useSessao();
     const [busca] = useSearchParams();
-    const destino = destinoDaVolta(busca.get('volta'));
-    const [email, setEmail] = useState('');
+    const volta = busca.get('volta');
+    const destino = destinoDaVolta(volta);
+    // Veio do cadastro: a conta foi criada, mas entrar falhou (o e-mail já vem preenchido)
+    const contaCriada = (useLocation().state as { contaCriada?: string } | null)
+        ?.contaCriada;
+    const [email, setEmail] = useState(contaCriada ?? '');
     const [senha, setSenha] = useState('');
     const [erro, setErro] = useState<string | null>(null);
     const [enviando, setEnviando] = useState(false);
@@ -46,10 +50,16 @@ export function Entrar() {
                 <p className="acesso-sub">
                     Sua carteira de mentira está esperando.
                 </p>
-                {erro && (
+                {erro ? (
                     <p className="alerta" role="alert">
                         {erro}
                     </p>
+                ) : (
+                    contaCriada && (
+                        <p className="alerta ok" role="status">
+                            Conta criada. Entre com sua senha.
+                        </p>
+                    )
                 )}
                 <form onSubmit={(e) => void enviar(e)}>
                     <div className="campo">
@@ -83,7 +93,8 @@ export function Entrar() {
                     </button>
                 </form>
                 <p className="acesso-troca">
-                    Ainda não tem conta? <Link to="/cadastro">Criar conta</Link>
+                    Ainda não tem conta?{' '}
+                    <Link to={comVolta('/cadastro', volta)}>Criar conta</Link>
                 </p>
             </div>
         </main>

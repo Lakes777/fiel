@@ -100,6 +100,14 @@ describe('Entrar', () => {
             screen.getByRole('link', { name: 'Criar conta' }),
         ).toHaveAttribute('href', '/cadastro');
     });
+
+    it('o link de criar conta leva o volta junto (e só se for deste site)', () => {
+        apiFalsa({});
+        abrir('/entrar?volta=%2Fpagar%3Fqr%3Dabc');
+        expect(
+            screen.getByRole('link', { name: 'Criar conta' }),
+        ).toHaveAttribute('href', '/cadastro?volta=%2Fpagar%3Fqr%3Dabc');
+    });
 });
 
 describe('destinoDaVolta', () => {
