@@ -21,3 +21,26 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - name: Estilo (ktlint), análise (detekt) e testes (Testcontainers sobe o Postgres)
         run: ./gradlew build
+
+  interface:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Formatação (Prettier)
+        run: npm run format:conferir
+      - name: Lint (oxlint)
+        run: npm run lint
+      - name: Tipos (tsc)
+        run: npm run tipos
+      - name: Testes (Vitest + Testing Library)
+        run: npm test
+      - run: npm run build
