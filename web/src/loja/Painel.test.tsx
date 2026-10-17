@@ -78,6 +78,18 @@ describe('Painel do lojista', () => {
         ).toBeInTheDocument();
     });
 
+    it('pendente que passou do prazo (o servidor ainda não marcou) diz "venceu", não "vence venceu"', async () => {
+        apiFalsa({
+            'GET /cobrancas': {
+                corpo: [umaCobranca({ id: 140, expiraEm: haMinutos(2) })],
+            },
+        });
+        abrir();
+        await waitFor(() => expect(linhaDe(140)).toBeInTheDocument());
+        expect(within(linhaDe(140)).getByText('venceu')).toBeInTheDocument();
+        expect(linhaDe(140)).not.toHaveTextContent('vence venceu');
+    });
+
     it('filtra por estado', async () => {
         apiFalsa({ 'GET /cobrancas': { corpo: cobrancasDoDia() } });
         abrir();

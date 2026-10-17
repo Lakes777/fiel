@@ -73,6 +73,56 @@ describe('Minhas chaves', () => {
         expect(screen.getByText('Chave copiada.')).toBeInTheDocument();
     });
 
+    it('duas cópias seguidas: só a última vale, mesmo se a primeira terminar depois', async () => {
+        montar({
+            'GET /chaves': {
+                corpo: [
+                    chave(1, 'email', 'ana@exemplo.com'),
+                    chave(2, 'aleatoria', UUID),
+                ],
+            },
+        });
+        const usuario = userEvent.setup();
+        let soltarPrimeira = () => {};
+        vi.spyOn(navigator.clipboard, 'writeText')
+            .mockImplementationOnce(
+                () => new Promise<void>((r) => (soltarPrimeira = r)),
+            )
+            .mockImplementationOnce(() => Promise.resolve());
+        const email = await screen.findByRole('button', {
+            name: 'Copiar a chave ana@exemplo.com',
+        });
+        const aleatoria = screen.getByRole('button', {
+            name: `Copiar a chave ${UUID}`,
+        });
+        await usuario.click(email);
+        await usuario.click(aleatoria);
+        await waitFor(() => expect(aleatoria).toHaveTextContent('Copiada'));
+        soltarPrimeira();
+        await new Promise((r) => setTimeout(r, 0));
+        expect(email).toHaveTextContent('Copiar');
+        expect(aleatoria).toHaveTextContent('Copiada');
+    });
+
+    it('cópia recusada pelo navegador: diz para copiar à mão, sem "Copiada"', async () => {
+        montar({
+            'GET /chaves': { corpo: [chave(2, 'aleatoria', UUID)] },
+        });
+        const usuario = userEvent.setup();
+        vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValueOnce(
+            new Error('negado'),
+        );
+        const botao = await screen.findByRole('button', {
+            name: `Copiar a chave ${UUID}`,
+        });
+        await usuario.click(botao);
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+            'Não deu para copiar. Selecione a chave e copie à mão.',
+        );
+        expect(botao).toHaveTextContent('Copiar');
+        expect(screen.queryByText('Chave copiada.')).not.toBeInTheDocument();
+    });
+
     it('apaga só depois de confirmar', async () => {
         let lista = [
             chave(1, 'email', 'ana@exemplo.com'),

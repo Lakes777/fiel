@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { api, mensagemDe } from '../api/cliente';
 import type { Chave, TipoDeChave } from '../api/tipos';
+import { useCopiar } from '../comum/ganchos';
 
 /** O mesmo limite do banco (check de 0 a 5 no contador de chaves da conta) */
 export const MAXIMO_DE_CHAVES = 5;
@@ -25,15 +26,10 @@ export function Chaves({
 }) {
     const [erro, setErro] = useState<string | null>(null);
     const [ocupado, setOcupado] = useState(false);
-    const [copiada, setCopiada] = useState<number | null>(null);
     const [apagando, setApagando] = useState<number | null>(null);
-
-    // "Copiada" some sozinho depois de um instante
-    useEffect(() => {
-        if (copiada === null) return;
-        const t = setTimeout(() => setCopiada(null), 2000);
-        return () => clearTimeout(t);
-    }, [copiada]);
+    // O gancho diz se copiou (e some sozinho) e qual das chaves foi
+    const [copia, copiarTexto, qualCopiou] = useCopiar<number>();
+    const copiada = copia === 'copiado' ? qualCopiou : null;
 
     const lotado = (chaves?.length ?? 0) >= MAXIMO_DE_CHAVES;
     const temEmail = chaves?.some((c) => c.tipo === 'email') ?? false;
@@ -65,13 +61,9 @@ export function Chaves({
         }
     }
 
-    async function copiar(chave: Chave) {
-        try {
-            await navigator.clipboard.writeText(chave.valor);
-            setCopiada(chave.id);
-        } catch {
-            setErro('Não deu para copiar. Selecione a chave e copie à mão.');
-        }
+    function copiar(chave: Chave) {
+        setErro(null);
+        copiarTexto(chave.valor, chave.id);
     }
 
     return (
@@ -134,7 +126,7 @@ export function Chaves({
                                     <button
                                         type="button"
                                         className="botao vazado pequeno"
-                                        onClick={() => void copiar(c)}
+                                        onClick={() => copiar(c)}
                                         aria-label={`Copiar a chave ${c.valor}`}
                                     >
                                         {copiada === c.id
@@ -156,11 +148,12 @@ export function Chaves({
                 </ul>
             )}
             <p className="so-leitor" aria-live="polite">
-                {copiada !== null ? 'Chave copiada.' : ''}
+                {copiada != null ? 'Chave copiada.' : ''}
             </p>
-            {erro && (
+            {(erro || copia === 'falhou') && (
                 <p className="alerta" role="alert">
-                    {erro}
+                    {erro ??
+                        'Não deu para copiar. Selecione a chave e copie à mão.'}
                 </p>
             )}
             {chaves && (

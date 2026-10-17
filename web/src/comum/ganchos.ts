@@ -19,23 +19,40 @@ export type EstadoDaCopia = 'nada' | 'copiado' | 'falhou';
 /**
  * Copia um texto (o código do QR, o segredo do webhook) e diz por um instante se deu certo. Sem
  * permissão de área de transferência (http sem TLS, navegador antigo), diz que falhou: o texto
- * fica visível na tela para a pessoa selecionar.
+ * fica visível na tela para a pessoa selecionar. A `marca` (qual das chaves, por exemplo) muda junto
+ * com o resultado, e só a última cópia pedida vale: uma cópia lenta não sobrescreve a seguinte.
  */
-export function useCopiar(): [EstadoDaCopia, (texto: string) => void] {
-    const [estado, setEstado] = useState<EstadoDaCopia>('nada');
+export function useCopiar<M = undefined>(): [
+    EstadoDaCopia,
+    (texto: string, marca?: M) => void,
+    M | undefined,
+] {
+    const [{ estado, marca }, setResultado] = useState<{
+        estado: EstadoDaCopia;
+        marca?: M;
+    }>({ estado: 'nada' });
     const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const ultima = useRef(0);
     useEffect(
         () => () => {
             if (temporizador.current) clearTimeout(temporizador.current);
         },
         [],
     );
-    const copiar = useCallback((texto: string) => {
+    const copiar = useCallback((texto: string, marcaNova?: M) => {
+        const pedido = ++ultima.current;
         const mostrar = (novo: EstadoDaCopia) => {
-            setEstado(novo);
+            if (pedido !== ultima.current) return;
+            setResultado({ estado: novo, marca: marcaNova });
             if (temporizador.current) clearTimeout(temporizador.current);
-            temporizador.current = setTimeout(() => setEstado('nada'), 2500);
+            temporizador.current = setTimeout(
+                () => setResultado({ estado: 'nada' }),
+                2500,
+            );
         };
+        // A cópia anterior some na hora: o "Copiada" não fica no botão errado enquanto esta não termina
+        if (temporizador.current) clearTimeout(temporizador.current);
+        setResultado({ estado: 'nada' });
         if (!navigator.clipboard) {
             mostrar('falhou');
             return;
@@ -45,5 +62,5 @@ export function useCopiar(): [EstadoDaCopia, (texto: string) => void] {
             () => mostrar('falhou'),
         );
     }, []);
-    return [estado, copiar];
+    return [estado, copiar, marca];
 }

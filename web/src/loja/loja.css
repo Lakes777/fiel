@@ -71,12 +71,6 @@
     cursor: pointer;
 }
 
-.botoes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
 /* ---------- Resumo do dia ---------- */
 .resumo {
     display: grid;
@@ -251,35 +245,6 @@
 .nova > .suave {
     margin: 8px 0 20px;
 }
-.com-prefixo {
-    display: flex;
-    align-items: center;
-    background: var(--fundo);
-    border: 1px solid var(--risco);
-    border-radius: 10px;
-    transition: border-color 0.2s;
-}
-.com-prefixo:focus-within {
-    border-color: var(--marca);
-}
-.com-prefixo span {
-    padding-left: 14px;
-    color: var(--suave);
-    font-weight: 500;
-}
-.campo .com-prefixo input {
-    flex: 1;
-    min-width: 0;
-    border: 0;
-    background: transparent;
-    font-variant-numeric: tabular-nums;
-    padding-left: 8px;
-}
-.campo [aria-invalid='true'],
-.com-prefixo:has([aria-invalid='true']) {
-    border-color: var(--sai);
-}
-
 /* ---------- Detalhe ---------- */
 .voltar {
     display: inline-block;

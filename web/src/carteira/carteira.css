@@ -177,12 +177,8 @@
 .valor-confirmar {
     margin: 0 0 4px;
 }
-.botoes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-.botoes > * {
+/* Na carteira os botões dividem a largura do cartão */
+.botoes.esticados > * {
     flex: 1 1 140px;
 }
 .botao.largo {

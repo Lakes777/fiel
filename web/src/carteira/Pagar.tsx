@@ -162,7 +162,7 @@ export function Pagar() {
                                 <dd>{quando(paga.pagaEm)}</dd>
                             </div>
                         </dl>
-                        <div className="botoes">
+                        <div className="botoes esticados">
                             <button
                                 type="button"
                                 className="botao vazado"

@@ -84,21 +84,13 @@
     margin: 0 auto;
     border-radius: 40px;
     padding: 12px;
-    /* No claro a moldura é a cor da tinta (escura); no escuro, ver abaixo */
-    background: var(--tinta);
+    background: var(--aparelho);
     box-shadow: var(--sombra);
     user-select: none;
     animation: inicio-entra 0.9s var(--curva) 0.2s both;
 }
-/*
- * No escuro a tinta é clara: a moldura passa a ser o próprio fundo, escurecido (sem cor escrita à
- * mão), com um fio para separar da página. Navegador sem cor relativa fica com o fundo e o fio.
- */
+/* No escuro a moldura quase some no fundo: um fio separa o celular da página */
 :root[data-tema='escuro'] .inicio-celular {
-    background: var(--fundo);
-    background: rgb(
-        from var(--fundo) calc(r * 0.45) calc(g * 0.45) calc(b * 0.45)
-    );
     box-shadow:
         0 0 0 1px var(--risco),
         var(--sombra);

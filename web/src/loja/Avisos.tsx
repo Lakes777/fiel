@@ -13,7 +13,7 @@ import { NOME_DO_AVISO, falta, quando } from '../comum/formatos';
 import { useMudou } from '../comum/movimento';
 import { useTitulo } from '../comum/titulo';
 import { Confirmar } from './Confirmar';
-import { useAgora, useCopiar } from './ganchos';
+import { useAgora, useCopiar } from '../comum/ganchos';
 
 const EXEMPLO =
     'https://github.com/Lakes777/fiel/blob/main/exemplos/lojista.py';
@@ -227,7 +227,7 @@ function Endereco() {
                 </div>
                 <button type="submit" className="botao" disabled={enviando}>
                     {enviando
-                        ? 'Conferindo...'
+                        ? 'Conferindo…'
                         : atual
                           ? 'Trocar endereço'
                           : 'Cadastrar endereço'}
@@ -472,7 +472,7 @@ function LinhaDoAviso({
                         onClick={aoReenviar}
                         aria-label={`Reenviar o aviso #${a.id}`}
                     >
-                        {reenviando ? 'Reenviando...' : 'Reenviar'}
+                        {reenviando ? 'Reenviando…' : 'Reenviar'}
                     </button>
                 )}
             </div>

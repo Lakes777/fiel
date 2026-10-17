@@ -268,6 +268,10 @@ h3 {
     outline: none;
     border-color: var(--marca);
 }
+/* Com erro, o vermelho fica mesmo com o foco no campo */
+.campo [aria-invalid='true']:focus {
+    border-color: var(--sai);
+}
 .campo .dica {
     font-size: 12px;
     color: var(--suave);
@@ -275,6 +279,43 @@ h3 {
 .campo .erro-do-campo {
     font-size: 13px;
     color: var(--sai);
+}
+
+/* Campo de dinheiro com o "R$" na frente (carteira e loja) */
+.com-prefixo {
+    display: flex;
+    align-items: center;
+    background: var(--fundo);
+    border: 1px solid var(--risco);
+    border-radius: 10px;
+    transition: border-color 0.2s;
+}
+.com-prefixo:focus-within {
+    border-color: var(--marca);
+}
+.com-prefixo span {
+    padding-left: 14px;
+    color: var(--suave);
+    font-weight: 500;
+}
+.campo .com-prefixo input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    font-variant-numeric: tabular-nums;
+    padding-left: 8px;
+}
+.campo [aria-invalid='true'],
+.com-prefixo:has([aria-invalid='true']) {
+    border-color: var(--sai);
+}
+
+/* Fileira de botões que quebra linha quando não cabe (a carteira estica com .esticados) */
+.botoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .alerta {
@@ -407,6 +448,7 @@ h3 {
     *::before,
     *::after {
         animation-duration: 0.01ms !important;
+        animation-delay: 0s !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
     }

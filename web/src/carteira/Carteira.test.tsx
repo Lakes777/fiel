@@ -1,5 +1,6 @@
-import { act, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import type {
     Chave,
     Conta,
@@ -10,6 +11,7 @@ import type {
 import { apiFalsa } from '../teste/api-falsa';
 import { eventosFalsos } from '../teste/preparar';
 import { ANA, logarComo, renderNaRota } from '../teste/render';
+import { Exige } from '../comum/Exige';
 import { Carteira } from './Carteira';
 
 const CONTA: Conta = { id: 7, nome: 'Carteira', saldoCentavos: 100000 };
@@ -213,13 +215,56 @@ describe('Transferir', () => {
         const falsa = montar();
         const { usuario } = await abrirTransferir();
         await ateConfirmar(usuario, '400,00');
-        expect(screen.getByRole('alert')).toHaveTextContent(
+        const campo = screen.getByLabelText('Valor');
+        expect(campo).toHaveAttribute('aria-invalid', 'true');
+        expect(campo).toHaveAccessibleDescription(
             'Passa do seu limite: agora dá para mandar até R$ 300,00.',
         );
+        expect(campo).toHaveFocus();
         expect(
             screen.queryByRole('button', { name: 'Confirmar' }),
         ).not.toBeInTheDocument();
         expect(falsa.pedidos('POST /transferencias')).toHaveLength(0);
+    });
+
+    it('sessão vencida no meio da transferência: volta para entrar, sem repetir o pedido', async () => {
+        const falsa = apiFalsa({
+            'GET /contas': { corpo: [CONTA] },
+            'GET /contas/:id/extrato': { corpo: [BONUS] },
+            'GET /limites': { corpo: LIMITES },
+            'GET /chaves': { corpo: [EMAIL] },
+            'POST /chaves/consulta': {
+                corpo: { nome: 'Bob L.', tipo: 'email' },
+            },
+            'POST /transferencias': { status: 401 },
+        });
+        logarComo(ANA);
+        function Lugar() {
+            const local = useLocation();
+            return <p>em {local.pathname + local.search}</p>;
+        }
+        render(
+            <MemoryRouter initialEntries={['/carteira']}>
+                <Routes>
+                    <Route
+                        path="/carteira"
+                        element={
+                            <Exige>
+                                <Carteira />
+                            </Exige>
+                        }
+                    />
+                    <Route path="*" element={<Lugar />} />
+                </Routes>
+            </MemoryRouter>,
+        );
+        const { usuario } = await abrirTransferir();
+        await ateConfirmar(usuario);
+        await usuario.click(screen.getByRole('button', { name: 'Confirmar' }));
+        expect(
+            await screen.findByText('em /entrar?volta=%2Fcarteira'),
+        ).toBeInTheDocument();
+        expect(falsa.pedidos('POST /transferencias')).toHaveLength(1);
     });
 
     it('mostra a mensagem do 422 da API', async () => {

@@ -178,7 +178,7 @@ export function FormularioDeEstorno({
                     className="botao perigo"
                     disabled={enviando}
                 >
-                    {enviando ? 'Estornando...' : 'Confirmar estorno'}
+                    {enviando ? 'Estornando…' : 'Confirmar estorno'}
                 </button>
                 <button
                     type="button"

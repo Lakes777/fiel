@@ -13,7 +13,7 @@ import { Qr } from '../comum/Qr';
 import { useTitulo } from '../comum/titulo';
 import { Confirmar } from './Confirmar';
 import { FormularioDeEstorno, type PedidoDeEstorno } from './Estornar';
-import { useAgora, useCopiar } from './ganchos';
+import { useAgora, useCopiar } from '../comum/ganchos';
 
 interface Carregado {
     cobranca: CobrancaDoLojista;

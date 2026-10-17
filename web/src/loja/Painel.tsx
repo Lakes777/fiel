@@ -13,7 +13,7 @@ import {
 } from '../comum/formatos';
 import { useMudou } from '../comum/movimento';
 import { useTitulo } from '../comum/titulo';
-import { useAgora } from './ganchos';
+import { useAgora } from '../comum/ganchos';
 
 type Filtro = 'todas' | 'pendentes' | 'pagas' | 'estornadas';
 
@@ -48,8 +48,11 @@ function resumoDoDia(cobrancas: CobrancaDoLojista[], agora: Date) {
 /** "vence em 12 min", "paga hoje, 14:32": o momento que importa em cada estado */
 function momento(c: CobrancaDoLojista, agora: Date): string {
     switch (c.estado) {
-        case 'pendente':
-            return `vence ${falta(c.expiraEm, agora)}`;
+        case 'pendente': {
+            // Passou do prazo e o servidor ainda não marcou: "venceu", não "vence venceu"
+            const prazo = falta(c.expiraEm, agora);
+            return prazo === 'venceu' ? prazo : `vence ${prazo}`;
+        }
         case 'expirada':
             return `venceu ${quando(c.expiraEm, agora)}`;
         case 'cancelada':

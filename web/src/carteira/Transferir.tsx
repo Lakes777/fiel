@@ -41,6 +41,7 @@ export function Transferir({
     const [dono, setDono] = useState<DonoDaChave | null>(null);
     const [valorTexto, setValorTexto] = useState('');
     const [erro, setErro] = useState<string | null>(null);
+    const [erroDoValor, setErroDoValor] = useState<string | null>(null);
     const [enviando, setEnviando] = useState(false);
     const [semRede, setSemRede] = useState(false);
     const [feita, setFeita] = useState<TransferenciaFeita | null>(null);
@@ -84,20 +85,23 @@ export function Transferir({
         }
     }
 
+    /** O que há de errado no valor digitado (no próprio campo, como na loja); null se dá para seguir */
+    function problemaDoValor(): string | null {
+        if (valor === null || valor <= 0)
+            return 'Digite um valor maior que zero, como 25,00.';
+        if (valor > saldoCentavos)
+            return `Seu saldo é ${reais(saldoCentavos)}.`;
+        if (valor > disponivel)
+            return `Passa do seu limite: agora dá para mandar até ${reais(disponivel)}.`;
+        return null;
+    }
+
     function conferirValor(e: FormEvent) {
         e.preventDefault();
-        if (valor === null || valor <= 0) {
-            setErro('Digite um valor maior que zero, como 25,00.');
-            return;
-        }
-        if (valor > saldoCentavos) {
-            setErro(`Seu saldo é ${reais(saldoCentavos)}.`);
-            return;
-        }
-        if (valor > disponivel) {
-            setErro(
-                `Passa do seu limite: agora dá para mandar até ${reais(disponivel)}.`,
-            );
+        const problema = problemaDoValor();
+        setErroDoValor(problema);
+        if (problema) {
+            document.getElementById(idValor)?.focus();
             return;
         }
         setErro(null);
@@ -208,25 +212,38 @@ export function Transferir({
                     </p>
                     <div className="campo">
                         <label htmlFor={idValor}>Valor</label>
-                        <input
-                            id={idValor}
-                            className="numero"
-                            value={valorTexto}
-                            onChange={(e) => {
-                                setValorTexto(e.target.value);
-                                setErro(null);
-                            }}
-                            inputMode="decimal"
-                            autoComplete="off"
-                            placeholder="0,00"
-                        />
-                        <span className="dica">
-                            Você pode mandar até {reais(maximo)} agora
-                            {maximo < disponivel ? ' (seu saldo)' : ''}.
+                        <div className="com-prefixo">
+                            <span aria-hidden="true">R$</span>
+                            <input
+                                id={idValor}
+                                className="numero"
+                                value={valorTexto}
+                                onChange={(e) => {
+                                    setValorTexto(e.target.value);
+                                    setErro(null);
+                                    setErroDoValor(null);
+                                }}
+                                inputMode="decimal"
+                                autoComplete="off"
+                                placeholder="0,00"
+                                aria-invalid={erroDoValor ? true : undefined}
+                                aria-describedby={`${idValor}-dica`}
+                            />
+                        </div>
+                        <span
+                            id={`${idValor}-dica`}
+                            className={erroDoValor ? 'erro-do-campo' : 'dica'}
+                        >
+                            {erroDoValor ?? (
+                                <>
+                                    Você pode mandar até {reais(maximo)} agora
+                                    {maximo < disponivel ? ' (seu saldo)' : ''}.
+                                </>
+                            )}
                         </span>
                     </div>
                     {alerta}
-                    <div className="botoes">
+                    <div className="botoes esticados">
                         <button
                             type="button"
                             className="botao vazado"
@@ -254,7 +271,7 @@ export function Transferir({
                         <span className="suave quebra"> · {chave}</span>
                     </p>
                     {alerta}
-                    <div className="botoes">
+                    <div className="botoes esticados">
                         <button
                             type="button"
                             className="botao vazado"
@@ -309,7 +326,7 @@ export function Transferir({
                             <dd className="numero">{feita.id}</dd>
                         </div>
                     </dl>
-                    <div className="botoes">
+                    <div className="botoes esticados">
                         <button
                             type="button"
                             className="botao vazado"

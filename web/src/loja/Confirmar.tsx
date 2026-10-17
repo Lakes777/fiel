@@ -48,7 +48,7 @@ export function Confirmar({
                     disabled={ocupado}
                     onClick={aoConfirmar}
                 >
-                    {ocupado ? 'Um momento...' : confirmar}
+                    {ocupado ? 'Um momento…' : confirmar}
                 </button>
                 <button
                     ref={voltar}

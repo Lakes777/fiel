@@ -54,17 +54,17 @@ export function useContagem(
 }
 
 /**
- * Devolve true por um instante quando `valor` muda (não na primeira vez): para pôr a classe
- * .mudou num saldo ou num estado que acabou de mudar ao vivo.
+ * Devolve true por um instante quando `valor` muda: para pôr a classe .mudou num saldo ou num
+ * estado que acabou de mudar ao vivo. null/undefined é "carregando": o primeiro valor de verdade
+ * não conta como mudança (abrir a tela não pisca nada).
  */
 export function useMudou(valor: unknown, duracao = 1400): boolean {
     const [mudou, setMudou] = useState(false);
-    const primeiro = useRef(true);
+    const anterior = useRef(valor);
     useEffect(() => {
-        if (primeiro.current) {
-            primeiro.current = false;
-            return;
-        }
+        const antes = anterior.current;
+        anterior.current = valor;
+        if (antes == null || Object.is(antes, valor)) return;
         setMudou(true);
         const t = setTimeout(() => setMudou(false), duracao);
         return () => clearTimeout(t);

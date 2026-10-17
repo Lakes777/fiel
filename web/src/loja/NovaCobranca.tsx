@@ -154,7 +154,7 @@ export function NovaCobranca() {
                     </span>
                 </div>
                 <button type="submit" className="botao" disabled={enviando}>
-                    {enviando ? 'Criando...' : 'Criar cobrança'}
+                    {enviando ? 'Criando…' : 'Criar cobrança'}
                 </button>
             </form>
         </section>
