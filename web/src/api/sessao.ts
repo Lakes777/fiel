@@ -1,4 +1,5 @@
 import { api } from './cliente';
+import { guardarRoteiro, type VisitanteCriado } from './demo';
 import type { Usuario } from './tipos';
 
 /** Quem está logado nesta aba. `carregando` enquanto a primeira consulta a /eu não voltou. */
@@ -49,6 +50,16 @@ export async function entrar(email: string, senha: string): Promise<Usuario> {
     return usuario;
 }
 
+/** Demonstração: cria uma conta descartável e já entra com ela. O roteiro fica guardado na aba. */
+export async function entrarComoVisitante(): Promise<VisitanteCriado> {
+    const criado = await api<VisitanteCriado>('/demo/visitante', {
+        metodo: 'POST',
+    });
+    guardarRoteiro(criado.roteiro);
+    mudar({ carregando: false, usuario: criado.eu });
+    return criado;
+}
+
 /** Só cria a conta: o cadastro não abre sessão, quem chama entra depois (e trata se isso falhar) */
 export async function cadastrar(
     nome: string,
@@ -65,6 +76,7 @@ export async function sair(): Promise<void> {
     try {
         await api<void>('/sessao', { metodo: 'DELETE' });
     } finally {
+        guardarRoteiro(null);
         mudar({ carregando: false, usuario: null });
     }
 }

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router';
+import { EntrarComoVisitante } from '../comum/EntrarComoVisitante';
 import { ErroDaApi, mensagemDe } from '../api/cliente';
 import { useSessao } from '../api/hooks';
 import { entrar } from '../api/sessao';
@@ -92,6 +93,11 @@ export function Entrar() {
                         {enviando ? 'Entrando…' : 'Entrar'}
                     </button>
                 </form>
+                <div className="acesso-visitante">
+                    <EntrarComoVisitante className="botao vazado acesso-enviar">
+                        Entrar como visitante
+                    </EntrarComoVisitante>
+                </div>
                 <p className="acesso-troca">
                     Ainda não tem conta?{' '}
                     <Link to={comVolta('/cadastro', volta)}>Criar conta</Link>

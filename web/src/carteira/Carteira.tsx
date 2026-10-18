@@ -6,6 +6,7 @@ import type { Chave, Conta, LinhaDoExtrato, Limites } from '../api/tipos';
 import { reais } from '../comum/formatos';
 import { useTitulo } from '../comum/titulo';
 import { Chaves } from './Chaves';
+import { RoteiroDaDemo } from './RoteiroDaDemo';
 import { useIdempotencia } from './idempotencia';
 import { Transferir } from './Transferir';
 import { VisaoDaCarteira } from './VisaoDaCarteira';
@@ -88,6 +89,7 @@ export function Carteira() {
                     />
                 </div>
                 <div className="coluna-lado">
+                    <RoteiroDaDemo />
                     <Chaves
                         chaves={chaves.dados}
                         erroAoCarregar={chaves.erro}

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 import { api, mensagemDe } from '../api/cliente';
-import { useAoVivo, useDados } from '../api/hooks';
+import { ehVisitante, pedirParaOBobPagar } from '../api/demo';
+import { useAoVivo, useDados, useSessao } from '../api/hooks';
 import type {
     CobrancaDoLojista,
     EstadoDaCobranca,
@@ -162,7 +163,7 @@ function Detalhe({ id }: { id: number }) {
                             Pagamento recebido agora
                         </p>
                     )}
-                    {pendente && <AcoesDoQr qr={c.qr} />}
+                    {pendente && <AcoesDoQr qr={c.qr} cobrancaId={c.id} />}
                 </div>
 
                 <div className="lado-dados">
@@ -310,13 +311,16 @@ function Selo({ cobranca }: { cobranca: CobrancaDoLojista }) {
     );
 }
 
-function AcoesDoQr({ qr }: { qr: string }) {
+function AcoesDoQr({ qr, cobrancaId }: { qr: string; cobrancaId: number }) {
     const [copia, copiar] = useCopiar();
+    const { usuario } = useSessao();
+    const visitante = ehVisitante(usuario);
     return (
         <>
             <p className="suave dica-qr">
                 Mostre este QR a quem vai pagar, ou mande o código.
             </p>
+            {visitante && <BobPaga cobrancaId={cobrancaId} />}
             <div className="botoes">
                 <button
                     type="button"
@@ -339,7 +343,9 @@ function AcoesDoQr({ qr }: { qr: string }) {
                     ? 'Código copiado.'
                     : copia === 'falhou'
                       ? 'Não deu para copiar. Selecione o código abaixo.'
-                      : 'Para testar, abra num navegador anônimo e entre com outra conta.'}
+                      : visitante
+                        ? 'Ou abra num navegador anônimo e pague com outra conta de visitante.'
+                        : 'Para testar, abra num navegador anônimo e entre com outra conta.'}
             </p>
             {copia === 'falhou' && (
                 <textarea
@@ -494,5 +500,50 @@ function NaoAchada({ mensagem }: { mensagem: string }) {
                 Ver as cobranças
             </Link>
         </section>
+    );
+}
+
+/**
+ * Demonstração: o Bob (a conta que acompanha o visitante) paga esta cobrança. Não muda nada aqui
+ * na mão: o pagamento chega pelo ao vivo, como chegaria de qualquer pagador.
+ */
+function BobPaga({ cobrancaId }: { cobrancaId: number }) {
+    const [estado, setEstado] = useState<
+        'parado' | 'pagando' | 'pago' | 'erro'
+    >('parado');
+    const [erro, setErro] = useState('');
+
+    async function pedir() {
+        setEstado('pagando');
+        try {
+            await pedirParaOBobPagar(cobrancaId);
+            // O painel vira "paga" quando o aviso ao vivo chegar; até lá, o botão não volta
+            setEstado('pago');
+        } catch (e) {
+            setErro(mensagemDe(e));
+            setEstado('erro');
+        }
+    }
+
+    return (
+        <div className="bob-paga">
+            <button
+                type="button"
+                className="botao"
+                disabled={estado === 'pagando' || estado === 'pago'}
+                onClick={() => void pedir()}
+            >
+                {estado === 'pagando'
+                    ? 'O Bob está pagando…'
+                    : estado === 'pago'
+                      ? 'O Bob pagou'
+                      : 'Pedir para o Bob pagar'}
+            </button>
+            {estado === 'erro' && (
+                <p className="alerta" role="alert">
+                    {erro}
+                </p>
+            )}
+        </div>
     );
 }

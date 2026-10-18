@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
+import { reiniciarDemoParaTeste } from '../api/demo';
 import { trocarEventosParaTeste } from '../api/eventos';
 import { reiniciarSessaoParaTeste } from '../api/sessao';
 import { EventosFalsos } from './eventos-falsos';
@@ -24,6 +25,7 @@ beforeEach(() => {
 afterEach(() => {
     cleanup();
     reiniciarSessaoParaTeste();
+    reiniciarDemoParaTeste();
     trocarEventosParaTeste(null);
     vi.unstubAllGlobals();
     vi.useRealTimers();

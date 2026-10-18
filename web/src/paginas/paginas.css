@@ -46,6 +46,12 @@
     width: 100%;
     text-align: center;
 }
+.acesso-visitante {
+    margin-top: 10px;
+}
+.acesso-visitante:empty {
+    display: none;
+}
 .acesso-troca {
     margin: 20px 0 0;
     font-size: 14px;

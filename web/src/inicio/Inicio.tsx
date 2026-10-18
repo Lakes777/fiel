@@ -1,5 +1,7 @@
 import type { CSSProperties, MouseEvent, ReactNode } from 'react';
 import { Link } from 'react-router';
+import { EntrarComoVisitante } from '../comum/EntrarComoVisitante';
+import { useDemoAtiva } from '../api/demo';
 import { useSessao } from '../api/hooks';
 import { VisaoDaCarteira } from '../carteira/VisaoDaCarteira';
 import { menosMovimento } from '../comum/movimento';
@@ -25,6 +27,8 @@ const GITHUB = 'https://github.com/Lakes777/fiel';
 export function Inicio() {
     useTitulo();
     const { usuario } = useSessao();
+    // Com a demonstração, o botão principal é entrar sem cadastro; sem ela, criar a conta
+    const demo = useDemoAtiva();
     return (
         <main className="inicio">
             <section className="inicio-heroi">
@@ -44,10 +48,18 @@ export function Inicio() {
                                 <span className="seta">→</span>
                             </Link>
                         ) : (
-                            <Link className="botao" to="/cadastro">
-                                Criar conta com R$&nbsp;1.000 de mentira{' '}
-                                <span className="seta">→</span>
-                            </Link>
+                            <>
+                                <EntrarComoVisitante>
+                                    Experimentar sem cadastro{' '}
+                                    <span className="seta">→</span>
+                                </EntrarComoVisitante>
+                                <Link
+                                    className={demo ? 'botao vazado' : 'botao'}
+                                    to="/cadastro"
+                                >
+                                    Criar conta com R$&nbsp;1.000 de mentira
+                                </Link>
+                            </>
                         )}
                         <a
                             className="botao vazado"
