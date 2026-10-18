@@ -42,7 +42,7 @@ grant connect on database fiel_demo to fiel_api;
 SQL
 	umask 077
 	cat > ~/fiel/.env <<ENV
-FIEL_BANCO_URL=jdbc:postgresql://banco:5432/fiel_demo
+FIEL_BANCO_URL=jdbc:postgresql://beacon-banco:5432/fiel_demo
 FIEL_BANCO_USUARIO=fiel_api
 FIEL_BANCO_SENHA=$api
 FIEL_MIGRAR_NA_PARTIDA=false
@@ -52,7 +52,7 @@ FIEL_PROXIES_CONFIAVEIS=$confiaveis
 ENV
 	# Só o migrar.sh lê este: a API nunca recebe a senha do dono
 	cat > ~/fiel/.env.dono <<ENV
-FIEL_BANCO_URL=jdbc:postgresql://banco:5432/fiel_demo
+FIEL_BANCO_URL=jdbc:postgresql://beacon-banco:5432/fiel_demo
 FIEL_BANCO_DONO=fiel_dono
 FIEL_BANCO_DONO_SENHA=$dono
 FIEL_BANCO_PAPEL_API=fiel_api
