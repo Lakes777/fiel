@@ -11,6 +11,9 @@ em outra, e o próprio banco de dados recusa um lançamento que não feche em ze
 
 É o meu primeiro projeto em **Kotlin**.
 
+**Demonstração no ar:** [fiel.andrelagos.dev](https://fiel.andrelagos.dev). Entre como visitante,
+sem cadastro: uma conta descartável com R$ 1.000,00 de mentira, recriada todo dia às 4h.
+
 > Projeto de estudo. Não movimenta dinheiro de verdade, não usa CPF nem dado real, e o QR tem
 > formato próprio, de propósito incompatível com aplicativos de banco.
 
@@ -26,7 +29,7 @@ em outra, e o próprio banco de dados recusa um lançamento que não feche em ze
 - [x] **6. Avisos ao lojista (webhooks):** outbox, novas tentativas com espera crescente, assinatura HMAC com carimbo de tempo, fila de falhas
 - [x] **7. Estorno e conciliação noturna:** só quem recebeu devolve (total ou em partes, sem prazo); conferência do razão inteiro toda noite, com aviso no Telegram
 - [x] **8. Interface:** React 19 + Vite com identidade própria ("Balança", claro e escuro): tela inicial, carteira e painel do lojista, tudo ao vivo pelo `GET /eventos`
-- [ ] **9. Publicação:** demonstração no ar
+- [x] **9. Publicação:** demonstração no ar
 
 ## Razão contábil
 
@@ -503,6 +506,37 @@ O que a tela faz para não dar errado com dinheiro:
 | ![Painel do lojista: recebido hoje R$ 223,90, 4 cobranças pagas, R$ 20,00 devolvidos e a lista de cobranças com os estados pendente, cancelada, paga e estornada em parte](docs/painel.png) | ![Cobrança estornada em parte: Jogo de xícaras de R$ 50,00 com R$ 20,00 devolvidos, o botão Estornar e o estorno "Uma xícara chegou lascada"](docs/estorno.png) |
 | ![Painel do lojista no tema escuro: fundo verde-garrafa, números em marfim e botões em latão](docs/escuro.png) | <img src="docs/celular.png" width="260" alt="Carteira no celular: saldo, limites, os três botões e o extrato com a descrição inteira em até duas linhas"> |
 
+## Demonstração e publicação
+
+Com `FIEL_DEMO=true`, a tela inicial ganha **"Experimentar sem cadastro"**. `POST /demo/visitante`
+cria uma conta descartável e já entra com ela. Junto vêm:
+
+- uma cobrança de R$ 59,90 da **Loja Exemplo** para pagar pelo QR;
+- a chave da **Ana**, para transferir;
+- um **Bob só do visitante**, que paga as cobranças que ele criar ("Pedir para o Bob pagar"): o
+  painel da loja mostra "Pagamento recebido agora" ao vivo. Um Bob para todos esvaziaria em uns
+  16 visitantes.
+
+Tudo passa pelos mesmos serviços da API (os R$ 1.000 vêm da Emissão num lançamento normal). Limites:
+10 visitantes por hora por IP (IPv6 pelo prefixo /64) e 300 por hora no total; o cadastro público
+recusa e-mails `@demo.fiel` e `@exemplo.fiel`, senão alguém faria o papel da Loja Exemplo e
+receberia o dinheiro dos visitantes (achado da revisão).
+
+Como o razão não deixa apagar nada, **zerar a demonstração é recriar o banco**: todo dia às 4h
+(depois da conciliação das 3h), [`deploy/repor-demo.sh`](deploy/repor-demo.sh) apaga o banco,
+roda as migrações e reinicia a API, que semeia a Loja Exemplo e a Ana.
+
+**Onde roda:** a mesma VM ARM da Oracle do Beacon, do Pursuit e do Cadence, custo zero.
+
+| Peça | Como |
+| --- | --- |
+| Imagens | [`Dockerfile`](Dockerfile) monta duas, no PC e sem emulação: a API (JRE 21, heap de 300 MB, em 512 MB) e as telas (o build do Vite num Caddy de 10 MB) |
+| Banco | O Postgres do Beacon, com dois usuários: `fiel_dono` (migrações) e `fiel_api` (a API) |
+| Proxy | O Caddy do Beacon: HTTPS, `/api/*` para a API sem o prefixo, o resto para as telas, CSP sem script inline ([`deploy/fiel.caddy`](deploy/fiel.caddy)) |
+| Segredos | Gerados na VM pelo [`deploy/preparar-vm.sh`](deploy/preparar-vm.sh); a senha do dono fica só no `.env.dono`, que só o `migrar.sh` lê |
+| Publicar | [`deploy/publicar.sh`](deploy/publicar.sh): monta, envia pelo SSH, migra com o dono, reinicia e confere a saúde |
+| Telegram | A conciliação noturna avisa no mesmo bot do [Vigil](https://github.com/Lakes777/vigil) |
+
 ## Rodando
 
 Precisa do Java 21 e do Docker.
@@ -539,6 +573,11 @@ npm run build               # confere os tipos e gera web/dist
 | `FIEL_PORTA` | `8080` | Porta da API |
 | `FIEL_TELEGRAM_TOKEN` | (vazio) | Token do bot que manda a conciliação noturna; vazio = só no log |
 | `FIEL_TELEGRAM_CHAT` | (vazio) | Id do chat que recebe a conciliação |
+| `FIEL_MIGRAR_NA_PARTIDA` | `true` | `false` em produção: as migrações rodam à parte, com o dono ([Usuário da API](#usuário-da-api)) |
+| `FIEL_BANCO_PAPEL_API` | (vazio) | Usuário da API a quem a V8 dá as permissões (só no `Migrar.kt`) |
+| `FIEL_DEMO` | `false` | Liga a [demonstração](#demonstração-e-publicação) (visitante, Loja Exemplo, Bob) |
+| `FIEL_CABECALHOS_DO_PROXY` | `none` | `native` atrás do Caddy: lê o `X-Forwarded-For` (a demonstração exige) |
+| `FIEL_PROXIES_CONFIAVEIS` | `127\.0\.0\.1` | Regex dos IPs do proxy em quem a API confia |
 
 ## `/saude`
 
