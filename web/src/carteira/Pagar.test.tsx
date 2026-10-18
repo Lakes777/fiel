@@ -70,6 +70,10 @@ describe('Pagar com QR', () => {
         expect(
             within(comprovante).getByRole('link', { name: 'Ver a carteira' }),
         ).toHaveAttribute('href', '/carteira');
+        // Um caminho só para a carteira: o link do rodapé sai com o comprovante
+        expect(
+            screen.queryByRole('link', { name: 'Voltar para a carteira' }),
+        ).not.toBeInTheDocument();
         expect(falsa.pedidos('POST /pagamentos')[0].corpo).toEqual({ qr: QR });
     });
 

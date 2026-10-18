@@ -283,9 +283,12 @@ export function Pagar() {
                     </>
                 )}
             </div>
-            <p className="suave volta">
-                <Link to="/carteira">Voltar para a carteira</Link>
-            </p>
+            {/* Com o comprovante na tela, o "Ver a carteira" dele já faz este papel */}
+            {!paga && (
+                <p className="suave volta">
+                    <Link to="/carteira">Voltar para a carteira</Link>
+                </p>
+            )}
         </main>
     );
 }
