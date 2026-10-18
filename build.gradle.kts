@@ -19,6 +19,11 @@ java {
     }
 }
 
+// Duas funções main no projeto (a API e o Migrar.kt): o jar parte pela API
+springBoot {
+    mainClass = "io.github.lakes777.fiel.FielApplicationKt"
+}
+
 repositories {
     mavenCentral()
 }

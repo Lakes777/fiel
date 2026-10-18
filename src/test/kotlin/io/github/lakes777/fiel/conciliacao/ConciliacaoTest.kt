@@ -3,6 +3,8 @@ package io.github.lakes777.fiel.conciliacao
 import com.sun.net.httpserver.HttpServer
 import io.github.lakes777.fiel.Navegador
 import io.github.lakes777.fiel.RelogioDeTeste
+import io.github.lakes777.fiel.TestcontainersConfiguration.Companion.COMO_DONO
+import io.github.lakes777.fiel.TestcontainersConfiguration.Companion.PAPEL_DA_API
 import io.github.lakes777.fiel.TesteDeIntegracao
 import io.github.lakes777.fiel.razao.Razao
 import io.github.lakes777.fiel.razao.transferencia
@@ -30,6 +32,8 @@ import kotlin.test.assertTrue
  * A conciliação precisa achar o que os gatilhos não deixariam entrar. Para provar, cada teste
  * desliga os gatilhos (session_replication_role = replica, só para superusuário), estraga o banco
  * dentro de uma transação, confere e desfaz: o banco compartilhado pelos testes continua inteiro.
+ * O estrago roda como dono ([COMO_DONO]): o usuário da API não consegue nada disso; a conferência
+ * volta a rodar com ele.
  */
 @TesteDeIntegracao
 class ConciliacaoTest {
@@ -79,9 +83,11 @@ class ConciliacaoTest {
         checkNotNull(
             transacao.execute { status ->
                 val antes = conciliacao.conferir().divergencias.toSet()
+                sql(COMO_DONO)
                 if (semGatilhos) sql("set local session_replication_role = replica")
                 estrago()
                 sql("set local session_replication_role = origin")
+                sql("set local role $PAPEL_DA_API")
                 status.setRollbackOnly()
                 conciliacao.conferir().divergencias.filterNot { it in antes }
             },

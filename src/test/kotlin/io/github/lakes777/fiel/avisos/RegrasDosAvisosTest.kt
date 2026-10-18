@@ -1,5 +1,6 @@
 package io.github.lakes777.fiel.avisos
 
+import io.github.lakes777.fiel.TestcontainersConfiguration.Companion.COMO_DONO
 import io.github.lakes777.fiel.TesteDeIntegracao
 import io.github.lakes777.fiel.usuarios.Cadastro
 import org.junit.jupiter.api.Test
@@ -62,7 +63,14 @@ class RegrasDosAvisosTest {
                 "delete from aviso where id = :id",
             )
         for (comando in tentativas) assertEquals("23001", erroDoBanco { sql(comando, "id" to id) }.sqlState, comando)
-        assertEquals("23001", erroDoBanco { sql("truncate aviso") }.sqlState)
+        // TRUNCATE só o dono alcança (a API nem tem a permissão, ver PapelDaApiTest): o gatilho vale para ele também
+        assertEquals(
+            "23001",
+            erroDoBanco {
+                sql(COMO_DONO)
+                sql("truncate aviso")
+            }.sqlState,
+        )
         // O estado da entrega muda (é para isso que ele existe)
         sql("update aviso set estado = 'entregue', proxima_em = null, entregue_em = now() where id = :id", "id" to id)
     }

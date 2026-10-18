@@ -1,5 +1,6 @@
 package io.github.lakes777.fiel.cobrancas
 
+import io.github.lakes777.fiel.TestcontainersConfiguration.Companion.COMO_DONO
 import io.github.lakes777.fiel.TesteDeIntegracao
 import io.github.lakes777.fiel.razao.Razao
 import io.github.lakes777.fiel.razao.transferencia
@@ -275,6 +276,13 @@ class RegrasDosEstornosTest {
         for (comando in listOf("update estorno set valor = 1 where id = :id", "delete from estorno where id = :id")) {
             assertEquals("23001", erroDoBanco { sql(comando, "id" to estorno) }.sqlState, comando)
         }
-        assertEquals("23001", erroDoBanco { sql("truncate estorno") }.sqlState)
+        // TRUNCATE só o dono alcança (a API nem tem a permissão, ver PapelDaApiTest): o gatilho vale para ele também
+        assertEquals(
+            "23001",
+            erroDoBanco {
+                sql(COMO_DONO)
+                sql("truncate estorno")
+            }.sqlState,
+        )
     }
 }

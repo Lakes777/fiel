@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.jdbc.core.simple.JdbcClient
+import org.testcontainers.postgresql.PostgreSQLContainer
+import java.sql.DriverManager
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -31,6 +33,9 @@ class EventosTest {
 
     @Autowired
     private lateinit var jdbc: JdbcClient
+
+    @Autowired
+    private lateinit var banco: PostgreSQLContainer
 
     @Autowired
     private lateinit var relogio: RelogioDeTeste
@@ -265,11 +270,13 @@ class EventosTest {
         val ana = Cliente("Ana Souza")
         ana.ouvir().use { daAna ->
             val antes = ouvinte.processo()
-            jdbc
-                .sql("select pg_terminate_backend(:pid)")
-                .param("pid", antes)
-                .query { _, _ -> }
-                .list()
+            // Derrubar a conexão de outro processo é coisa de dono, não do usuário da API: entra como dono
+            DriverManager.getConnection(banco.jdbcUrl, banco.username, banco.password).use { dono ->
+                dono.prepareStatement("select pg_terminate_backend(?)").use {
+                    it.setInt(1, antes)
+                    it.executeQuery().close()
+                }
+            }
 
             assertEquals("pronto", daAna.proximo(15_000)?.nome)
             assertTrue(ouvinte.processo() != antes)

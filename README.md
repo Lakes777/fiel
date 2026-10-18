@@ -46,7 +46,7 @@ As regras valem **dentro do Postgres** (gatilhos em
 [`V1__razao_contabil.sql`](src/main/resources/db/migration/V1__razao_contabil.sql)), não só no
 Kotlin, então nem um bug na API nem um SQL escrito à mão as quebram (para qualquer usuário do
 banco que não seja o dono das tabelas: o dono pode desligar gatilhos, e por isso a API em produção
-vai usar um usuário sem esse poder):
+usa um usuário sem esse poder, veja [Usuário da API](#usuário-da-api)):
 
 1. **As partidas de um lançamento somam zero.** Conferido no `COMMIT` por um gatilho *deferido*:
    no meio da transação a soma ainda não fecha, e tudo bem; se não fechar no fim, nada é gravado.
@@ -67,6 +67,30 @@ sequências aleatórias de lançamentos contra o Postgres de verdade, conferindo
 conta feita à parte, e centenas de lançamentos que não fecham, escritos direto em SQL, que o banco
 precisa recusar. Cada regra foi conferida com uma contraprova: desligada de propósito, algum teste
 quebra.
+
+## Usuário da API
+
+O **dono** das tabelas pode o que nenhum gatilho impede: `ALTER TABLE ... DISABLE TRIGGER`, `DROP`,
+`TRUNCATE`, trocar uma função. Por isso a API não é dona de nada. Em produção:
+
+- as migrações rodam **à parte**, com o dono ([`Migrar.kt`](src/main/kotlin/io/github/lakes777/fiel/Migrar.kt)),
+  e a senha dele nunca entra no contêiner da API (`FIEL_MIGRAR_NA_PARTIDA=false`). Em produção é
+  sempre ele quem migra: ele exige o nome do usuário da API, e a V8 roda uma vez só;
+- a API entra com um usuário que só lê e grava linhas
+  ([`V8__papel_da_api.sql`](src/main/resources/db/migration/V8__papel_da_api.sql)). Mudar saldo à
+  mão e apagar lançamento seguem barrados pelos gatilhos, também para ele.
+
+**Tabela temporária.** Qualquer usuário do Postgres podia criar tabela temporária, e na busca por
+nome ela vem antes da tabela real. Um `create temp table partida` com duas linhas que somam zero
+enganava o gatilho que confere o lançamento, e uma partida só criava dinheiro do nada (achado na
+revisão desta fase, reproduzido com o usuário da API). A V8 fecha por dois lados: tira de todos a
+permissão de criar tabela temporária e faz toda função procurar primeiro no `public`
+(`set search_path = public, pg_temp`). Um teste confere que **toda** função do esquema tem isso,
+inclusive as de migrações futuras.
+
+Todos os testes rodam assim: as migrações com o dono e a API com o usuário restrito. O
+`PapelDaApiTest` entra com o login dele e confere que tudo o que desligaria as regras é recusado
+(contraprova: liberar `TRUNCATE` na V8 faz o teste quebrar).
 
 ## Usuários, login e chaves
 

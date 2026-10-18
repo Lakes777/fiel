@@ -1,5 +1,6 @@
 package io.github.lakes777.fiel.razao
 
+import io.github.lakes777.fiel.TestcontainersConfiguration.Companion.COMO_DONO
 import io.github.lakes777.fiel.TesteDeIntegracao
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -148,7 +149,14 @@ class RegrasDoBancoTest {
                 "truncate partida, lancamento, transferencia, cobranca, estorno",
             )
         for (sql in tentativas) {
-            assertEquals("23001", erroDoBanco { jdbc.sql(sql).update() }.sqlState, sql)
+            // TRUNCATE só o dono alcança (a API nem tem a permissão, ver PapelDaApiTest); o gatilho
+            // vale para ele também
+            val erro =
+                erroDoBanco {
+                    if (sql.startsWith("truncate")) jdbc.sql(COMO_DONO).update()
+                    jdbc.sql(sql).update()
+                }
+            assertEquals("23001", erro.sqlState, sql)
         }
         assertEquals(Centavos(10), razao.saldo(b))
     }

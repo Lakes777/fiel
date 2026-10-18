@@ -1,5 +1,6 @@
 package io.github.lakes777.fiel.transferencias
 
+import io.github.lakes777.fiel.TestcontainersConfiguration.Companion.COMO_DONO
 import io.github.lakes777.fiel.TesteDeIntegracao
 import io.github.lakes777.fiel.razao.Razao
 import io.github.lakes777.fiel.razao.transferencia
@@ -158,6 +159,13 @@ class RegrasDasTransferenciasTest {
             erroDoBanco { sql("update transferencia set valor = 1 where de_conta = :c", daAna) }.sqlState,
         )
         assertEquals("23001", erroDoBanco { sql("delete from transferencia where de_conta = :c", daAna) }.sqlState)
-        assertEquals("23001", erroDoBanco { sql("truncate transferencia") }.sqlState)
+        // TRUNCATE só o dono alcança (a API nem tem a permissão, ver PapelDaApiTest): o gatilho vale para ele também
+        assertEquals(
+            "23001",
+            erroDoBanco {
+                sql(COMO_DONO)
+                sql("truncate transferencia")
+            }.sqlState,
+        )
     }
 }

@@ -1,5 +1,6 @@
 package io.github.lakes777.fiel.usuarios
 
+import io.github.lakes777.fiel.TestcontainersConfiguration.Companion.COMO_DONO
 import io.github.lakes777.fiel.TesteDeIntegracao
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -204,7 +205,14 @@ class RegrasDosUsuariosTest {
             "23001",
             erroDoBanco { sql("update conta set chaves = 0 where id = :c", "c" to ana.carteiraId) }.sqlState,
         )
-        assertEquals("23001", erroDoBanco { sql("truncate chave") }.sqlState)
+        // TRUNCATE só o dono alcança (a API nem tem a permissão, ver PapelDaApiTest): o gatilho vale para ele também
+        assertEquals(
+            "23001",
+            erroDoBanco {
+                sql(COMO_DONO)
+                sql("truncate chave")
+            }.sqlState,
+        )
     }
 
     private fun chavesNoBanco(conta: Long) =
