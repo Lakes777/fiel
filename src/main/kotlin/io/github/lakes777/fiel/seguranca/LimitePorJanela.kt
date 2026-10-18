@@ -44,6 +44,9 @@ class LimitePorJanela(
     /** Quantas chaves estão sendo contadas agora (para os testes conferirem a limpeza). */
     val tamanho get() = contagens.size
 
+    /** Se a [chave] está sendo contada (para os testes conferirem qual IP a API enxergou). */
+    fun contando(chave: String) = contagens.containsKey(chave)
+
     fun esquecer(chave: String) {
         contagens.remove(chave)
     }

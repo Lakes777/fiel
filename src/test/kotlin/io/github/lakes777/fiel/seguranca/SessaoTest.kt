@@ -28,6 +28,9 @@ class SessaoTest {
     @Autowired
     private lateinit var jdbc: JdbcClient
 
+    @Autowired
+    private lateinit var limites: LimitesDeUso
+
     private fun navegador() = Navegador(porta)
 
     private fun emailNovo() = "${UUID.randomUUID()}@teste.fiel"
@@ -71,6 +74,20 @@ class SessaoTest {
         } finally {
             executor.shutdownNow()
         }
+    }
+
+    @Test
+    fun `atrás do proxy, o limite de cadastros conta o IP de quem chamou, não o do proxy`() {
+        // Nos testes o Navegador faz o papel do Caddy (o único proxy confiável): o IP vem do cabeçalho
+        val resposta =
+            navegador().enviar(
+                "POST",
+                "/cadastro",
+                mapOf("nome" to "Ana Souza", "email" to emailNovo(), "senha" to SENHA),
+                cabecalhos = mapOf("X-Forwarded-For" to "203.0.113.7"),
+            )
+        assertEquals(201, resposta.status)
+        assertTrue(limites.cadastro.contando("203.0.113.7"))
     }
 
     @Test

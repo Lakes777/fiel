@@ -29,6 +29,9 @@ import org.springframework.context.annotation.Import
         "fiel.limite.estornos-por-minuto=1000000",
         // Expiração e entrega de avisos rodam quando o teste chama, com o relógio parado
         "fiel.tarefas-agendadas=false",
+        // O Navegador dos testes faz o papel do Caddy: dele, o X-Forwarded-For vale
+        "server.forward-headers-strategy=native",
+        "server.tomcat.remoteip.internal-proxies=127\\.0\\.0\\.1|0:0:0:0:0:0:0:1",
         // O receptor de avisos dos testes roda em http://localhost
         "fiel.avisos.permitir-rede-local=true",
         // Prazo curto, para o teste do lojista que responde devagar não demorar
