@@ -83,7 +83,8 @@
     font-size: 13px;
 }
 
-.ajuda ul {
+.ajuda ul,
+.ajuda ol {
     margin: 0;
     padding-left: 18px;
     font-size: 14px;
@@ -91,6 +92,13 @@
 }
 .ajuda li + li {
     margin-top: 6px;
+}
+/* O roteiro da demonstração: os passos são para fazer, então o texto não fica apagado */
+.roteiro ol {
+    color: inherit;
+}
+.roteiro .botao {
+    margin-top: 14px;
 }
 
 /* ---------- Diálogo (transferir) ---------- */
