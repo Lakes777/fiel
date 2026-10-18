@@ -8,16 +8,7 @@
     <meta name="description" content="Fiel: pagamentos onde a conta sempre fecha. Carteira, transferências e cobranças com QR, com dinheiro de mentira." />
     <link rel="icon" href="/icone.svg" type="image/svg+xml" />
     <title>Fiel</title>
-    <script>
-      // Antes de pintar: o tema salvo (ou o do aparelho), sem piscar o claro no escuro
-      try {
-        var t = localStorage.getItem('fiel-tema');
-        if (t !== 'claro' && t !== 'escuro') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro';
-        document.documentElement.dataset.tema = t;
-      } catch (e) {
-        document.documentElement.dataset.tema = 'claro';
-      }
-    </script>
+    <script src="/tema.js"></script>
   </head>
   <body>
     <div id="raiz"></div>

@@ -1,0 +1,47 @@
+# Produção na VM ARM da Oracle, a mesma do Beacon, do Pursuit e do Cadence. Só a demonstração vai ao
+# ar (FIEL_DEMO=true, banco fiel_demo, recriado todo dia às 4h por repor-demo.sh). O banco fica no
+# Postgres do Beacon, com dois usuários próprios (fiel_dono para as migrações, fiel_api para a API,
+# ver V8); o Caddy do Beacon fica na frente (site em ~/beacon/sites/fiel.caddy).
+name: fiel
+
+x-logs: &logs
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  api:
+    image: fiel:latest
+    restart: unless-stopped
+    # Banco (usuário fiel_api), demonstração, proxy confiável e Telegram ficam no .env da VM (criado
+    # pelo preparar-vm.sh) e nunca saem de lá. A senha do dono NÃO está aqui: só no .env.dono.
+    env_file: .env
+    environment:
+      # Poucas threads: cada uma reserva pilha, e a demonstração não precisa de 200 pedidos ao mesmo tempo
+      SERVER_TOMCAT_THREADS_MAX: "40"
+    mem_limit: 512m
+    logging: *logs
+    networks:
+      beacon:
+        # O nome que o Caddy do Beacon usa para chegar aqui (reverse_proxy fiel-api:8080)
+        aliases: [fiel-api]
+
+  web:
+    image: fiel-web:latest
+    restart: unless-stopped
+    mem_limit: 32m
+    logging: *logs
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks:
+      beacon:
+        aliases: [fiel-web]
+
+networks:
+  beacon:
+    external: true
+    name: beacon_interna

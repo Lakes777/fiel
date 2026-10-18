@@ -1,0 +1,13 @@
+# Só o que as imagens precisam: o resto (builds locais, dependências, git) fica de fora do contexto
+.git
+.gradle
+.kotlin
+.claude
+build
+docs
+exemplos
+web/node_modules
+web/dist
+web/tsconfig.tsbuildinfo
+# Segredos (o .env e o .env.dono só existem na VM)
+.env*

@@ -1,0 +1,22 @@
+# Site do Fiel no Caddy do Beacon (copiado para ~/beacon/sites/ pelo publicar.sh). O Caddy pega o
+# certificado HTTPS sozinho. /api/* vai para a API sem o prefixo (como o proxy do Vite em dev), e o
+# resto para as telas. O GET /eventos (text/event-stream) passa ao vivo: o Caddy não segura a resposta
+# de um fluxo de eventos. DOMINIO_FIEL é trocado pelo endereço na publicação.
+DOMINIO_FIEL {
+	# Sem "encode" aqui: comprimir poderia segurar o fluxo de eventos ao vivo. As telas já vêm
+	# comprimidas do contêiner delas, e as respostas da API são pequenas.
+	handle_path /api/* {
+		reverse_proxy fiel-api:8080
+	}
+	handle {
+		reverse_proxy fiel-web:80
+	}
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# Tudo do próprio endereço: nenhum script ou estilo inline (o tema vem de /tema.js)
+		Content-Security-Policy "default-src 'self'; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		-Server
+	}
+}
