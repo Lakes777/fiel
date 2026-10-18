@@ -61,7 +61,7 @@ describe('Pagar com QR', () => {
         await usuario.paste(QR);
         await usuario.click(screen.getByRole('button', { name: 'Conferir' }));
         await usuario.click(
-            await screen.findByRole('button', { name: 'Pagar R$ 25,50' }),
+            await screen.findByRole('button', { name: 'Pagar R$\u00a025,50' }),
         );
         const comprovante = await screen.findByRole('status');
         expect(within(comprovante).getByText('Pago')).toBeInTheDocument();
@@ -130,7 +130,9 @@ describe('Pagar com QR', () => {
             );
             const usuario = userEvent.setup();
             await usuario.click(
-                await screen.findByRole('button', { name: 'Pagar R$ 25,50' }),
+                await screen.findByRole('button', {
+                    name: 'Pagar R$\u00a025,50',
+                }),
             );
             expect(await screen.findByRole('alert')).toHaveTextContent(
                 'A cobrança mudou enquanto você conferia. Nada foi pago.',
@@ -168,7 +170,7 @@ describe('Pagar com QR', () => {
         expect(campo).toHaveAttribute('readonly');
         soltarA();
         await usuario.click(
-            await screen.findByRole('button', { name: 'Pagar R$ 25,50' }),
+            await screen.findByRole('button', { name: 'Pagar R$\u00a025,50' }),
         );
         expect(falsa.pedidos('POST /pagamentos')[0].corpo).toEqual({ qr: QR });
     });
@@ -186,7 +188,7 @@ describe('Pagar com QR', () => {
         );
         const usuario = userEvent.setup();
         await usuario.click(
-            await screen.findByRole('button', { name: 'Pagar R$ 25,50' }),
+            await screen.findByRole('button', { name: 'Pagar R$\u00a025,50' }),
         );
         expect(await screen.findByRole('alert')).toHaveTextContent(
             'Saldo insuficiente.',

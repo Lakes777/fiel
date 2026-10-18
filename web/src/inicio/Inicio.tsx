@@ -45,7 +45,7 @@ export function Inicio() {
                             </Link>
                         ) : (
                             <Link className="botao" to="/cadastro">
-                                Criar conta com R$ 1.000 de mentira{' '}
+                                Criar conta com R$&nbsp;1.000 de mentira{' '}
                                 <span className="seta">→</span>
                             </Link>
                         )}
@@ -246,9 +246,9 @@ function Recursos() {
                     </h2>
                     <p className="inicio-explica">
                         Carteira, transferências, cobranças com QR e avisos para
-                        o lojista. Tudo com R$ 1.000 de bônus que não valem nada
-                        fora daqui, e com as mesmas preocupações de um sistema
-                        de pagamentos de verdade.
+                        o lojista. Tudo com R$&nbsp;1.000 de bônus que não valem
+                        nada fora daqui, e com as mesmas preocupações de um
+                        sistema de pagamentos de verdade.
                     </p>
                 </Surge>
                 {/* A grade inteira é observada; os cartões entram um depois do outro (--i) */}
@@ -291,15 +291,15 @@ function Lancamento() {
                     <dl>
                         <div>
                             <dt>Carteira da Ana</dt>
-                            <dd className="numero sai">−R$ 34,00</dd>
+                            <dd className="numero sai">−R$&nbsp;34,00</dd>
                         </div>
                         <div>
                             <dt>Carteira do Bob</dt>
-                            <dd className="numero entra">+R$ 34,00</dd>
+                            <dd className="numero entra">+R$&nbsp;34,00</dd>
                         </div>
                         <div className="inicio-soma">
                             <dt>Soma</dt>
-                            <dd className="numero">R$ 0,00</dd>
+                            <dd className="numero">R$&nbsp;0,00</dd>
                         </div>
                     </dl>
                 </Surge>

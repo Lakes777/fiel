@@ -65,7 +65,8 @@ export function Cadastro() {
                 <Balanca className="acesso-balanca" />
                 <h1>Criar conta</h1>
                 <p className="acesso-sub">
-                    A conta nasce com R$ 1.000 de bônus para testar à vontade.
+                    A conta nasce com R$&nbsp;1.000 de bônus para testar à
+                    vontade.
                 </p>
                 {erro && (
                     <p className="alerta" role="alert">
@@ -137,7 +138,7 @@ export function Cadastro() {
                     >
                         {enviando
                             ? 'Criando a conta…'
-                            : 'Criar conta e ganhar R$ 1.000 de mentira'}
+                            : 'Criar conta e ganhar R$\u00a01.000 de mentira'}
                     </button>
                 </form>
                 <p className="acesso-troca">

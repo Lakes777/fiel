@@ -9,11 +9,11 @@ import {
 
 describe('dinheiro', () => {
     it('formata centavos em reais, com milhar e sinal de menos tipográfico', () => {
-        expect(reais(123456)).toBe('R$ 1.234,56');
-        expect(reais(5)).toBe('R$ 0,05');
-        expect(reais(-2550)).toBe('−R$ 25,50');
-        expect(reaisComSinal(2550)).toBe('+R$ 25,50');
-        expect(reaisComSinal(-2550)).toBe('−R$ 25,50');
+        expect(reais(123456)).toBe('R$\u00a01.234,56');
+        expect(reais(5)).toBe('R$\u00a00,05');
+        expect(reais(-2550)).toBe('−R$\u00a025,50');
+        expect(reaisComSinal(2550)).toBe('+R$\u00a025,50');
+        expect(reaisComSinal(-2550)).toBe('−R$\u00a025,50');
     });
 
     it('lê o que a pessoa digita', () => {

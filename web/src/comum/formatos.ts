@@ -5,9 +5,12 @@ const DINHEIRO = new Intl.NumberFormat('pt-BR', {
     maximumFractionDigits: 2,
 });
 
-/** 123456 -> "R$ 1.234,56"; negativo com o sinal de menos tipográfico ("−R$ 25,50") */
+/**
+ * 123456 -> "R$ 1.234,56"; negativo com o sinal de menos tipográfico ("−R$ 25,50"). O espaço depois
+ * do R$ não quebra: a linha não acaba em "R$" com o número embaixo
+ */
 export function reais(centavos: number): string {
-    const texto = `R$ ${DINHEIRO.format(Math.abs(centavos) / 100)}`;
+    const texto = `R$\u00a0${DINHEIRO.format(Math.abs(centavos) / 100)}`;
     return centavos < 0 ? `−${texto}` : texto;
 }
 

@@ -43,7 +43,7 @@ async function preencher(senha: string) {
     await userEvent.type(screen.getByLabelText('Senha'), senha);
     await userEvent.click(
         screen.getByRole('button', {
-            name: 'Criar conta e ganhar R$ 1.000 de mentira',
+            name: 'Criar conta e ganhar R$\u00a01.000 de mentira',
         }),
     );
 }

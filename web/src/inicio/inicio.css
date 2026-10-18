@@ -128,6 +128,9 @@
 }
 .inicio-tela .visao-carteira .descricao {
     font-size: 12.5px;
+    /* O celular de exemplo fica com uma linha por lançamento, como no desenho */
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
 }
 .inicio-tela .visao-carteira .quando {
     font-size: 11px;

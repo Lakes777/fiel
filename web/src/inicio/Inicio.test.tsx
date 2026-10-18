@@ -18,7 +18,7 @@ describe('Inicio', () => {
         ).toBeInTheDocument();
         expect(
             await screen.findByRole('link', {
-                name: /Criar conta com R\$ 1\.000 de mentira/,
+                name: /Criar conta com R\$\s1\.000 de mentira/,
             }),
         ).toHaveAttribute('href', '/cadastro');
         expect(

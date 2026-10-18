@@ -63,12 +63,16 @@
 .visao-carteira .extrato li + li {
     border-top: 1px solid var(--risco);
 }
+/* Até duas linhas: no celular, uma só cortava justo o que foi pago ("...a Bob L.: Bule de ferro") */
 .visao-carteira .descricao {
     font-size: 14px;
     min-width: 0;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
 }
 .visao-carteira .quando {
     grid-column: 1;

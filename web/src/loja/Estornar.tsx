@@ -20,7 +20,7 @@ export interface PedidoDeEstorno {
 
 /** "R$ 34,00" -> "34,00": o campo já vem com o que falta devolver, pronto para editar */
 function semMoeda(centavos: number): string {
-    return reais(centavos).replace('R$ ', '');
+    return reais(centavos).replace(/^R\$\s/, '');
 }
 
 /**

@@ -218,7 +218,7 @@ describe('Transferir', () => {
         const campo = screen.getByLabelText('Valor');
         expect(campo).toHaveAttribute('aria-invalid', 'true');
         expect(campo).toHaveAccessibleDescription(
-            'Passa do seu limite: agora dá para mandar até R$ 300,00.',
+            'Passa do seu limite: agora dá para mandar até R$\u00a0300,00.',
         );
         expect(campo).toHaveFocus();
         expect(
