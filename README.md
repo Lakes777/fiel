@@ -14,6 +14,8 @@ em outra, e o próprio banco de dados recusa um lançamento que não feche em ze
 > Projeto de estudo. Não movimenta dinheiro de verdade, não usa CPF nem dado real, e o QR tem
 > formato próprio, de propósito incompatível com aplicativos de banco.
 
+![Fiel em uso: à esquerda, o Bob cria uma cobrança de R$ 59,90 por uma camiseta e o QR se desenha; à direita, a Ana cola o código, confere o valor e o nome e paga; a cobrança do Bob vira "paga" na hora, com "Pagamento recebido agora", e o saldo da Ana cai para R$ 863,60](docs/demo.gif)
+
 ## Fases
 
 - [x] **1. Esqueleto:** Kotlin + Spring Boot 4, Gradle (Kotlin DSL), PostgreSQL 17 com Flyway, `/saude`, erros no formato RFC 9457, testes com Testcontainers, ktlint e detekt no CI
@@ -23,7 +25,7 @@ em outra, e o próprio banco de dados recusa um lançamento que não feche em ze
 - [x] **5. Cobranças com QR:** formato TLV com CRC16, estados e expiração
 - [x] **6. Avisos ao lojista (webhooks):** outbox, novas tentativas com espera crescente, assinatura HMAC com carimbo de tempo, fila de falhas
 - [x] **7. Estorno e conciliação noturna:** só quem recebeu devolve (total ou em partes, sem prazo); conferência do razão inteiro toda noite, com aviso no Telegram
-- [ ] **8. Interface:** React (carteira e painel do lojista) com atualização ao vivo
+- [x] **8. Interface:** React 19 + Vite com identidade própria ("Balança", claro e escuro): tela inicial, carteira e painel do lojista, tudo ao vivo pelo `GET /eventos`
 - [ ] **9. Publicação:** demonstração no ar
 
 ## Razão contábil
@@ -437,6 +439,46 @@ dela, então o evento chega a quem estiver conectado em qualquer instância, sem
 | Desligar a API | As conexões fecham antes do desligamento gracioso, que senão esperaria por elas 20 s (medido: 1 s) |
 | Sair | `DELETE /sessao` e `DELETE /sessoes` fecham as conexões da pessoa |
 
+## Interface
+
+React 19 + Vite + TypeScript, em `web/`, com a identidade "Balança": papel marfim, tinta
+verde-garrafa e latão, números em Fraunces e o resto em Inter, e o logo é uma balança com o fiel
+no meio. O tema escuro troca o marfim por verde-garrafa e o latão vira a cor dos botões; a primeira
+visita segue o aparelho, e o botão da lua lembra a escolha.
+
+**Tela inicial.** Um celular com a carteira de exemplo, montada com o mesmo componente da carteira
+de verdade: o saldo conta até o valor, o extrato surge linha a linha e o QR se desenha. Embaixo, os
+recursos e um lançamento que soma R$ 0,00.
+
+**Carteira.** Saldo, os limites do dia e da noite com o quanto ainda dá para mandar, o extrato, as
+chaves e três caminhos: transferir (chave, depois o nome do dono para conferir, valor e
+confirmação), pagar um QR (cola o código, confere valor e recebedor, paga) e cobrar.
+
+**Painel do lojista.** O resumo do dia (recebido, cobranças pagas, devolvido), as cobranças com
+filtro por estado, o detalhe com o QR, cancelar e estornar (total ou em partes, com motivo), e os
+avisos do webhook com reenvio.
+
+**Ao vivo.** Cada tela ouve o `GET /eventos` e busca de novo só o que mudou: o lojista vê a cobrança
+virar "paga" no instante em que alguém paga, e o saldo de quem recebe conta até o valor novo.
+
+O que a tela faz para não dar errado com dinheiro:
+
+| Situação | O que acontece |
+| --- | --- |
+| Queda de rede (ou 502/504) no meio de uma transferência ou estorno | A mesma `Idempotency-Key` vai na nova tentativa, e o servidor não faz duas vezes; a chave só muda depois de dar certo |
+| A cobrança mudou entre conferir e pagar (409) | "A cobrança mudou enquanto você conferia. Nada foi pago.", e a tela consulta de novo para mostrar o estado real |
+| Trocar o código depois de conferir | O campo trava enquanto paga, e uma resposta atrasada de uma consulta antiga é descartada: paga-se sempre o QR que foi conferido |
+| Sessão vencida (15 min sem uso) no meio de um pedido | Volta para entrar, e depois do login retorna à mesma tela, sem repetir o pedido |
+| Valor digitado como `12.50` | Lido como R$ 12,50; o ponto só vale como milhar em grupos de três (`1.234`) |
+| Recarregar a página logo depois de criar uma cobrança | Não anuncia "Pagamento recebido agora" para um pagamento antigo |
+| Pedir menos movimento no sistema | Todas as animações param (contagem, extrato, QR, carimbo) |
+
+| | |
+| --- | --- |
+| ![Tela inicial: o título "Pagamentos onde a conta sempre fecha." à esquerda e, à direita, um celular com a carteira de exemplo, saldo de R$ 1.366,00, extrato e QR](docs/inicio.png) | ![Carteira da Ana: saldo de R$ 923,50, limites do dia e da noite, os botões Transferir, Pagar QR e Cobrar, o extrato com pagamentos, um estorno e transferências, e as chaves](docs/carteira.png) |
+| ![Painel do lojista: recebido hoje R$ 223,90, 4 cobranças pagas, R$ 20,00 devolvidos e a lista de cobranças com os estados pendente, cancelada, paga e estornada em parte](docs/painel.png) | ![Cobrança estornada em parte: Jogo de xícaras de R$ 50,00 com R$ 20,00 devolvidos, o botão Estornar e o estorno "Uma xícara chegou lascada"](docs/estorno.png) |
+| ![Painel do lojista no tema escuro: fundo verde-garrafa, números em marfim e botões em latão](docs/escuro.png) | <img src="docs/celular.png" width="260" alt="Carteira no celular: saldo, limites, os três botões e o extrato com a descrição inteira em até duas linhas"> |
+
 ## Rodando
 
 Precisa do Java 21 e do Docker.
@@ -451,6 +493,16 @@ Sem o compose, `./gradlew bootTestRun` sobe a API com um Postgres temporário do
 ```bash
 ./gradlew build             # ktlint, detekt e testes
 ./gradlew ktlintFormat      # corrige o estilo
+```
+
+A interface (Node 24, o mesmo do CI), com a API rodando:
+
+```bash
+cd web
+npm install
+npm run dev                 # http://localhost:5190 (o Vite manda /api para a 8080)
+npm test                    # Vitest + Testing Library
+npm run build               # confere os tipos e gera web/dist
 ```
 
 ## Configuração
