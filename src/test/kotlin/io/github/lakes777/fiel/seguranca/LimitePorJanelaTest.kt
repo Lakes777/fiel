@@ -9,6 +9,7 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotEquals
 
 class LimitePorJanelaTest {
     /** Um relógio que só anda quando o teste manda. */
@@ -73,5 +74,17 @@ class LimitePorJanelaTest {
         limite.registrar("bob")
 
         assertEquals(1, limite.tamanho)
+    }
+
+    @Test
+    fun `IPv6 conta pelo prefixo 64, IPv4 pelo endereço`() {
+        assertEquals("203.0.113.7", chaveDoIp("203.0.113.7"))
+        // Dois endereços da mesma casa (mesmo /64) são uma chave só; outra casa, outra chave
+        assertEquals(chaveDoIp("2001:db8:1:2::1"), chaveDoIp("2001:db8:1:2:abcd:ef01:2345:6789"))
+        assertEquals("2001:db8:1:2::/64", chaveDoIp("2001:0db8:0001:0002:0000:0000:0000:0001"))
+        assertNotEquals(chaveDoIp("2001:db8:1:2::1"), chaveDoIp("2001:db8:1:3::1"))
+        // Nada que não seja IP literal vira consulta de DNS
+        assertEquals("exemplo.com", chaveDoIp("exemplo.com"))
+        assertEquals("cafe.be", chaveDoIp("cafe.be"))
     }
 }

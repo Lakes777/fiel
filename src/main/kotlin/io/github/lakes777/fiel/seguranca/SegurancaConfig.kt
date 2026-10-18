@@ -65,9 +65,9 @@ class SegurancaConfig {
                     // autorizado ao abrir
                     .dispatcherTypeMatchers(DispatcherType.ASYNC)
                     .permitAll()
-                    .requestMatchers(HttpMethod.GET, "/saude", "/csrf")
+                    .requestMatchers(HttpMethod.GET, "/saude", "/csrf", "/demo")
                     .permitAll()
-                    .requestMatchers(HttpMethod.POST, "/cadastro", "/sessao")
+                    .requestMatchers(HttpMethod.POST, "/cadastro", "/sessao", "/demo/visitante")
                     .permitAll()
                     .requestMatchers("/error")
                     .permitAll()

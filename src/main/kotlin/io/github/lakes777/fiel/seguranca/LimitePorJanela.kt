@@ -3,6 +3,8 @@ package io.github.lakes777.fiel.seguranca
 import io.github.lakes777.fiel.erros.MuitasTentativas
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
+import java.net.Inet6Address
+import java.net.InetAddress
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -85,6 +87,7 @@ class LimitesDeUso(
     @Value("\${fiel.limite.cobrancas-por-minuto:30}") cobrancasPorMinuto: Int,
     @Value("\${fiel.limite.pagamentos-por-minuto:30}") pagamentosPorMinuto: Int,
     @Value("\${fiel.limite.estornos-por-minuto:30}") estornosPorMinuto: Int,
+    @Value("\${fiel.limite.visitantes-por-hora:300}") visitantesPorHora: Int,
 ) {
     /**
      * Tentativas de login por e-mail, contadas ANTES de conferir a senha: 200 pedidos ao mesmo tempo
@@ -116,4 +119,42 @@ class LimitesDeUso(
 
     /** Pedidos de estorno por usuário: cada um trava a cobrança e as duas carteiras. */
     val estorno = LimitePorJanela(maximo = estornosPorMinuto, janela = Duration.ofMinutes(1))
+
+    /**
+     * Visitantes da demonstração criados por hora, somando todo mundo (uma chave só). O limite por
+     * IP para um curioso; este, quem tem muitos IPs: cada visitante custa dois bcrypt e uma dúzia de
+     * linhas num Postgres pequeno e compartilhado.
+     */
+    val visitantes = LimitePorJanela(maximo = visitantesPorHora, janela = Duration.ofHours(1))
 }
+
+/**
+ * A chave de um IP nos limites por IP. IPv6 conta pelo prefixo /64: uma casa recebe um /64 inteiro
+ * (bilhões de endereços), e contar cada um à parte deixaria qualquer um escapar do limite.
+ */
+fun chaveDoIp(ip: String): String {
+    // Só texto com cara de IP literal: assim o getByName nunca vira uma consulta de DNS
+    val endereco = if (IP_LITERAL.matches(ip)) runCatching { InetAddress.getByName(ip) }.getOrNull() else null
+    return when (endereco) {
+        null -> ip
+        is Inet6Address -> prefixo64(endereco.address)
+        else -> endereco.hostAddress
+    }
+}
+
+/** Os primeiros 8 bytes do IPv6, em 4 grupos "xxxx": "2001:db8:1:2::/64". */
+private fun prefixo64(bytes: ByteArray): String =
+    bytes
+        .take(BYTES_DO_PREFIXO)
+        .chunked(2) { (alto, baixo) ->
+            "%x".format(
+                (alto.toInt() and UM_BYTE) shl BITS_DE_UM_BYTE or (baixo.toInt() and UM_BYTE),
+            )
+        }.joinToString(":", postfix = "::/64")
+
+private const val BYTES_DO_PREFIXO = 8
+private const val UM_BYTE = 0xff
+private const val BITS_DE_UM_BYTE = 8
+
+// IPv4 com quatro números, ou IPv6 (tem ":", que o Java nunca trata como nome a resolver)
+private val IP_LITERAL = Regex("^(\\d{1,3}(\\.\\d{1,3}){3}|[0-9a-fA-F.]*:[0-9a-fA-F:.]*)$")

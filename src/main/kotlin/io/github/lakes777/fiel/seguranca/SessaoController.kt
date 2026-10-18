@@ -1,6 +1,8 @@
 package io.github.lakes777.fiel.seguranca
 
+import io.github.lakes777.fiel.demo.DOMINIOS_DA_DEMO
 import io.github.lakes777.fiel.erros.NaoAutenticado
+import io.github.lakes777.fiel.erros.RegraDeNegocio
 import io.github.lakes777.fiel.eventos.Canais
 import io.github.lakes777.fiel.usuarios.Cadastro
 import io.github.lakes777.fiel.usuarios.UsuarioLogado
@@ -17,9 +19,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.AuthenticationException
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.core.context.SecurityContextHolder
-import org.springframework.security.web.context.SecurityContextRepository
 import org.springframework.security.web.csrf.CsrfToken
-import org.springframework.security.web.csrf.CsrfTokenRepository
 import org.springframework.session.FindByIndexNameSessionRepository
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -54,12 +54,10 @@ data class Csrf(
 class SessaoController(
     private val cadastro: Cadastro,
     private val autenticacao: AuthenticationManager,
-    private val contexto: SecurityContextRepository,
     private val sessoes: FindByIndexNameSessionRepository<*>,
     private val limites: LimitesDeUso,
-    private val tokensCsrf: CsrfTokenRepository,
     private val canais: Canais,
-    private val relogioDaSessao: RelogioDaSessao,
+    private val aberturaDeSessao: AberturaDeSessao,
 ) {
     /** Entrega o token CSRF (e grava o cookie XSRF-TOKEN): o cliente chama antes do primeiro POST. */
     @GetMapping("/csrf")
@@ -71,7 +69,12 @@ class SessaoController(
         @Valid @RequestBody pedido: PedidoDeCadastro,
         requisicao: HttpServletRequest,
     ): Eu {
-        limites.cadastro.registrar(requisicao.remoteAddr)
+        limites.cadastro.registrar(chaveDoIp(requisicao.remoteAddr))
+        // As contas da demonstração (Loja Exemplo, Ana, visitantes e Bobs) são achadas pelo e-mail:
+        // quem se cadastrasse com um deles faria o papel da Loja e receberia o dinheiro dos visitantes
+        if (DOMINIOS_DA_DEMO.any { normalizarEmail(pedido.email).endsWith("@$it") }) {
+            throw RegraDeNegocio("este domínio de e-mail é reservado à demonstração")
+        }
         val novo = cadastro.cadastrar(pedido.nome, pedido.email, pedido.senha)
         return Eu(novo.id, novo.nome, novo.email)
     }
@@ -93,16 +96,7 @@ class SessaoController(
                 throw NaoAutenticado("e-mail ou senha incorretos")
             }
         limites.login.esquecer(email)
-        // Fixação de sessão: quem plantou um id de sessão antes do login não herda a sessão logada
-        if (requisicao.getSession(false) != null) requisicao.changeSessionId()
-        val estrategia = SecurityContextHolder.getContextHolderStrategy()
-        val novoContexto = estrategia.createEmptyContext().apply { authentication = autenticado }
-        estrategia.context = novoContexto
-        contexto.saveContext(novoContexto, requisicao, resposta)
-        // A hora do último uso nasce com a sessão: os pedidos que a tela faz juntos logo depois só a leem
-        requisicao.getSession().setAttribute(InatividadeDaSessao.ULTIMO_USO, relogioDaSessao.relogio.millis())
-        // Token CSRF novo a cada login: um token visto antes de entrar não serve depois
-        tokensCsrf.saveToken(tokensCsrf.generateToken(requisicao), requisicao, resposta)
+        aberturaDeSessao.abrir(autenticado, requisicao, resposta)
         val usuario = autenticado.principal as UsuarioLogado
         return Eu(usuario.id, usuario.nome, usuario.email)
     }
