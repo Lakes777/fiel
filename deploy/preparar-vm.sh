@@ -60,6 +60,13 @@ ENV
 	echo "Usuários fiel_dono e fiel_api, banco fiel_demo e os .env prontos (proxies: $confiaveis)."
 fi
 
+# Cadastros (e visitantes) por IP: 30 por hora, não os 10 do padrão, porque numa sala de aula ou
+# escritório muita gente sai pelo mesmo IP. Vale também para um .env feito antes desta linha
+if ! grep -q '^FIEL_LIMITE_CADASTROSPORHORA=' ~/fiel/.env; then
+	echo 'FIEL_LIMITE_CADASTROSPORHORA=30' >> ~/fiel/.env
+	echo "Limite de cadastros por IP: 30 por hora (vale no próximo publicar.sh)."
+fi
+
 # A demo recriada todo dia às 4h (a VM está no horário de Brasília), depois da conciliação das 3h
 if ! crontab -l 2>/dev/null | grep -q 'fiel/repor-demo.sh'; then
 	(crontab -l 2>/dev/null; echo '0 4 * * * ~/fiel/repor-demo.sh >> ~/fiel/repor-demo.log 2>&1') | crontab -
