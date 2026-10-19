@@ -1,5 +1,7 @@
 package io.github.lakes777.fiel.seguranca
 
+import io.github.lakes777.fiel.integracao.ChaveDeIntegracao
+import io.github.lakes777.fiel.integracao.LojaIntegrada
 import jakarta.servlet.DispatcherType
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -18,7 +20,9 @@ import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository
 import org.springframework.security.web.context.SecurityContextRepository
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository
+import org.springframework.security.web.csrf.CsrfFilter
 import org.springframework.security.web.csrf.CsrfTokenRepository
+import org.springframework.security.web.util.matcher.RequestMatcher
 
 /**
  * Quem entra e como. Login por sessão: um cookie HttpOnly (o JavaScript não lê) com o id de uma
@@ -57,8 +61,11 @@ class SegurancaConfig {
         http: HttpSecurity,
         contexto: SecurityContextRepository,
         tokensCsrf: CsrfTokenRepository,
+        lojaIntegrada: LojaIntegrada,
     ): SecurityFilterChain =
         http
+            // A chave de integração (o Foil) entra antes do CSRF: ver ChaveDeIntegracao
+            .addFilterBefore(ChaveDeIntegracao(lojaIntegrada), CsrfFilter::class.java)
             .authorizeHttpRequests {
                 it
                     // O fim de uma resposta assíncrona (GET /eventos) volta pelo filtro: o pedido já foi
@@ -76,33 +83,42 @@ class SegurancaConfig {
             }
             // Token no cookie XSRF-TOKEN; o cliente devolve no cabeçalho X-XSRF-TOKEN. Vale também
             // para o login e o cadastro (sem ele, um site de fora poderia logar você na conta dele)
-            .csrf { it.spa().csrfTokenRepository(tokensCsrf) }
-            .securityContext { it.securityContextRepository(contexto) }
+            .csrf {
+                it
+                    .spa()
+                    .csrfTokenRepository(tokensCsrf)
+                    // Pedido com Bearer não usa cookie; a chave errada já parou no filtro da chave
+                    .ignoringRequestMatchers(RequestMatcher { ChaveDeIntegracao.chaveDe(it) != null })
+            }.securityContext { it.securityContextRepository(contexto) }
             .exceptionHandling {
                 it
                     .authenticationEntryPoint { _, resposta, _ ->
-                        problema(resposta, HttpStatus.UNAUTHORIZED, "faça login para continuar")
+                        escreverProblema(resposta, HttpStatus.UNAUTHORIZED, "faça login para continuar")
                     }.accessDeniedHandler { _: HttpServletRequest, resposta, _ ->
-                        problema(resposta, HttpStatus.FORBIDDEN, "pedido recusado: falta o token CSRF ou ele não vale")
+                        escreverProblema(
+                            resposta,
+                            HttpStatus.FORBIDDEN,
+                            "pedido recusado: falta o token CSRF ou ele não vale",
+                        )
                     }
             }.formLogin { it.disable() }
             .httpBasic { it.disable() }
             .logout { it.disable() }
             .requestCache { it.disable() }
             .build()
+}
 
-    // Os filtros de segurança respondem antes do Spring MVC, então escrevem o problem+json à mão
-    private fun problema(
-        resposta: HttpServletResponse,
-        status: HttpStatus,
-        detalhe: String,
-    ) {
-        resposta.status = status.value()
-        resposta.contentType = "application/problem+json"
-        resposta.characterEncoding = Charsets.UTF_8.name()
-        val titulo = status.reasonPhrase
-        resposta.writer.write(
-            """{"type":"about:blank","title":"$titulo","status":${status.value()},"detail":"$detalhe"}""",
-        )
-    }
+// Os filtros de segurança respondem antes do Spring MVC, então escrevem o problem+json à mão
+fun escreverProblema(
+    resposta: HttpServletResponse,
+    status: HttpStatus,
+    detalhe: String,
+) {
+    resposta.status = status.value()
+    resposta.contentType = "application/problem+json"
+    resposta.characterEncoding = Charsets.UTF_8.name()
+    val titulo = status.reasonPhrase
+    resposta.writer.write(
+        """{"type":"about:blank","title":"$titulo","status":${status.value()},"detail":"$detalhe"}""",
+    )
 }

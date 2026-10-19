@@ -39,8 +39,13 @@ import org.springframework.context.annotation.Import
         "fiel.avisos.permitir-rede-local=true",
         // Prazo curto, para o teste do lojista que responde devagar não demorar
         "fiel.avisos.prazo-segundos=3",
+        // A Loja Foil e a chave dela, para o IntegracaoTest
+        "fiel.integracao.chave=" + CHAVE_DE_TESTE,
     ],
 )
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration::class, ContadorDeSenhas::class, ConfiguracaoDoRelogio::class)
 annotation class TesteDeIntegracao
+
+/** A chave de integração dos testes (64 caracteres, como a do openssl rand -hex 32). */
+const val CHAVE_DE_TESTE = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"

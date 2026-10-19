@@ -30,6 +30,7 @@ sem cadastro: uma conta descartável com R$ 1.000,00 de mentira, recriada todo d
 - [x] **7. Estorno e conciliação noturna:** só quem recebeu devolve (total ou em partes, sem prazo); conferência do razão inteiro toda noite, com aviso no Telegram
 - [x] **8. Interface:** React 19 + Vite com identidade própria ("Balança", claro e escuro): tela inicial, carteira e painel do lojista, tudo ao vivo pelo `GET /eventos`
 - [x] **9. Publicação:** demonstração no ar
+- [x] **Extra: integração com o [Foil](https://github.com/Lakes777/foil):** chave de integração da Loja Foil, cobrança idempotente pela referência
 
 ## Razão contábil
 
@@ -506,6 +507,32 @@ O que a tela faz para não dar errado com dinheiro:
 | ![Painel do lojista: recebido hoje R$ 223,90, 4 cobranças pagas, R$ 20,00 devolvidos e a lista de cobranças com os estados pendente, cancelada, paga e estornada em parte](docs/painel.png) | ![Cobrança estornada em parte: Jogo de xícaras de R$ 50,00 com R$ 20,00 devolvidos, o botão Estornar e o estorno "Uma xícara chegou lascada"](docs/estorno.png) |
 | ![Painel do lojista no tema escuro: fundo verde-garrafa, números em marfim e botões em latão](docs/escuro.png) | <img src="docs/celular.png" width="260" alt="Carteira no celular: saldo, limites, os três botões e o extrato com a descrição inteira em até duas linhas"> |
 
+## Integração com outro sistema (o Foil)
+
+A loja do [Foil](https://github.com/Lakes777/foil) cobra pelo Fiel sem login nem cookie: com
+`FIEL_INTEGRACAO_CHAVE` definida, o pedido com `Authorization: Bearer <chave>` entra como a conta fixa
+**Loja Foil** (`foil@exemplo.fiel`, criada na partida, então sobrevive à recriação diária da
+demonstração como a Loja Exemplo).
+
+| A chave pode | A chave não pode (403) |
+| --- | --- |
+| `POST /cobrancas`, `GET /cobrancas/{id}`, `POST /cobrancas/{id}/cancelamento`, `POST /cobrancas/{id}/estornos`, `PUT /webhook` | Carteira, transferências, chaves, a lista de cobranças, apagar o webhook |
+
+Cancelar e estornar estão na lista porque a saga do Foil desfaz a compra quando o prazo vence: a
+cobrança pendente é cancelada e a que foi paga no último segundo é estornada. Com a chave vazada, o
+pior que dá para fazer é devolver aos clientes o que eles pagaram. Ela é comparada em tempo constante
+(os hashes SHA-256, para nem o tamanho vazar), e com menos de 32 caracteres a API não sobe. O pedido
+com Bearer não passa pelo CSRF (não usa cookie, e um site de fora não consegue mandar o cabeçalho
+`Authorization` sem uma permissão de CORS que o Fiel não dá) e não abre sessão.
+
+**Cobrança idempotente pela referência** (migração V9, vale para qualquer lojista): `POST /cobrancas`
+aceita `referencia` (até 64 letras, números, `-` ou `_`), única por carteira. Criar de novo com a mesma
+devolve a mesma cobrança, com `Idempotent-Replayed: true`; com outro valor ou descrição é 422. Sem isso,
+o sistema que cria a cobrança e cai antes de guardar a resposta criaria uma segunda ao tentar de novo.
+20 pedidos com a mesma referência ao mesmo tempo criam uma cobrança só (o índice único segura os que
+passaram juntos pela busca; contraprova: sem o índice, as 20 viram 20 cobranças). A referência vai no aviso `cobranca.paga`, para o lojista achar o pedido
+sem guardar o id do Fiel.
+
 ## Demonstração e publicação
 
 Com `FIEL_DEMO=true`, a tela inicial ganha **"Experimentar sem cadastro"**. `POST /demo/visitante`
@@ -578,6 +605,7 @@ npm run build               # confere os tipos e gera web/dist
 | `FIEL_DEMO` | `false` | Liga a [demonstração](#demonstração-e-publicação) (visitante, Loja Exemplo, Bob) |
 | `FIEL_CABECALHOS_DO_PROXY` | `none` | `native` atrás do Caddy: lê o `X-Forwarded-For` (a demonstração exige) |
 | `FIEL_PROXIES_CONFIAVEIS` | `127\.0\.0\.1` | Regex dos IPs do proxy em quem a API confia |
+| `FIEL_INTEGRACAO_CHAVE` | (vazio) | Chave da [Loja Foil](#integração-com-outro-sistema-o-foil); vazia = integração desligada. `openssl rand -hex 32` |
 
 ## `/saude`
 

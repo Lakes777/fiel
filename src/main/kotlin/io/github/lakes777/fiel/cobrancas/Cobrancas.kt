@@ -17,8 +17,10 @@ import jakarta.validation.Valid
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank
+import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Positive
 import jakarta.validation.constraints.Size
+import org.springframework.dao.DuplicateKeyException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -29,7 +31,6 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import java.time.Clock
 import java.time.Duration
@@ -41,6 +42,12 @@ data class PedidoDeCobranca(
     @NotBlank @Size(max = 140) val descricao: String,
     /** Quanto tempo a cobrança vale; de 1 minuto a 1 dia. */
     @Min(1) @Max(MINUTOS_POR_DIA) val validadeMinutos: Long = 30,
+    /**
+     * Opcional: o código do pedido no sistema do lojista. Criar de novo com a mesma referência devolve a
+     * mesma cobrança (o sistema que caiu antes de guardar a resposta pede de novo sem duplicar).
+     */
+    @Pattern(regexp = "[A-Za-z0-9_-]{1,64}", message = "a referência tem de 1 a 64 letras, números, - ou _")
+    val referencia: String? = null,
 )
 
 data class PedidoComQr(
@@ -59,6 +66,7 @@ data class CobrancaDoLojista(
     /** Quanto já voltou para quem pagou. */
     val estornadoCentavos: Long,
     val qr: String,
+    val referencia: String?,
 )
 
 /** A cobrança como quem vai pagar vê antes de confirmar: o recebedor só pelo nome mascarado. */
@@ -97,34 +105,61 @@ class Cobrancas(
 ) {
     private val transacao = TransactionTemplate(transacoes)
 
+    /** A cobrança e se ela já existia (a mesma referência pedida de novo). */
+    data class Criada(
+        val cobranca: CobrancaDoLojista,
+        val repetida: Boolean,
+    )
+
     fun criar(
         usuario: UsuarioLogado,
         pedido: PedidoDeCobranca,
-    ): CobrancaDoLojista {
+    ): Criada {
         if (pedido.valorCentavos > Limites.DIA.valor) {
             throw PedidoInvalido(
                 "o valor máximo de uma cobrança é ${Saidas.reais(Limites.DIA)}, o limite diário de quem paga",
             )
         }
+        val descricao = pedido.descricao.trim()
+        pedido.referencia?.let { referencia ->
+            banco.porReferencia(usuario.id, referencia)?.let {
+                return Criada(it.repeticao(pedido.valorCentavos, descricao, agora()), true)
+            }
+        }
         val agora = agora()
         val validade = Duration.ofMinutes(pedido.validadeMinutos)
         // Numa transação com o evento: se ele falhar, a cobrança não fica criada (repetir não duplica)
-        return checkNotNull(
-            transacao.execute {
-                val id =
-                    banco.inserir(
-                        usuario.id,
-                        pedido.valorCentavos,
-                        pedido.descricao.trim(),
-                        agora,
-                        agora.plus(validade),
-                    )
-                val criada = checkNotNull(banco.porId(id))
-                // Outras abas do lojista também mostram a cobrança nova
-                eventos.publicar(criada.recebedorConta, "cobranca", id)
-                criada.doLojista(agora)
-            },
-        )
+        return try {
+            Criada(
+                checkNotNull(
+                    transacao.execute {
+                        val criada =
+                            banco.inserir(
+                                usuario.id,
+                                pedido.valorCentavos,
+                                descricao,
+                                agora,
+                                agora.plus(validade),
+                                pedido.referencia,
+                            )
+                        // Outras abas do lojista também mostram a cobrança nova
+                        eventos.publicar(criada.recebedorConta, "cobranca", criada.id)
+                        criada.doLojista(agora)
+                    },
+                ),
+                repetida = false,
+            )
+        } catch (erro: DuplicateKeyException) {
+            // Dois pedidos com a mesma referência ao mesmo tempo passaram juntos pela busca acima; o índice
+            // único (V9) barrou o segundo, que responde com a cobrança do primeiro
+            val referencia = pedido.referencia ?: throw erro
+            Criada(
+                checkNotNull(
+                    banco.porReferencia(usuario.id, referencia),
+                ).repeticao(pedido.valorCentavos, descricao, agora()),
+                true,
+            )
+        }
     }
 
     /** As 100 mais recentes. */
@@ -283,13 +318,15 @@ class CobrancasController(
     private val limites: LimitesDeUso,
 ) {
     @PostMapping("/cobrancas")
-    @ResponseStatus(HttpStatus.CREATED)
     fun criar(
         @Valid @RequestBody pedido: PedidoDeCobranca,
         @AuthenticationPrincipal usuario: UsuarioLogado,
-    ): CobrancaDoLojista {
+    ): ResponseEntity<CobrancaDoLojista> {
         limites.cobranca.registrar(usuario.username)
-        return cobrancas.criar(usuario, pedido)
+        val (cobranca, repetida) = cobrancas.criar(usuario, pedido)
+        val resposta = ResponseEntity.status(HttpStatus.CREATED)
+        if (repetida) resposta.header("Idempotent-Replayed", "true")
+        return resposta.body(cobranca)
     }
 
     @GetMapping("/cobrancas")

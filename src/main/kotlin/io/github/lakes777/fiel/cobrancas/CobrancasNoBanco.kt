@@ -29,6 +29,8 @@ data class Cobranca(
     val pagaEm: Instant?,
     /** A soma dos estornos até agora. */
     val estornado: Centavos = Centavos.ZERO,
+    /** O código do sistema do lojista, se ele mandou um (V9). */
+    val referencia: String? = null,
 ) {
     /** Pendente que já venceu aparece como expirada, mesmo antes da tarefa de expiração passar. */
     fun estadoEm(agora: Instant) = if (estado == "pendente" && !agora.isBefore(expiraEm)) "expirada" else estado
@@ -46,6 +48,7 @@ data class Cobranca(
             pagaEm,
             estornado.valor,
             qr(),
+            referencia,
         )
 
     /** O que vai no aviso ao lojista: o suficiente para ele achar o pedido dele, sem o QR. */
@@ -56,9 +59,24 @@ data class Cobranca(
             "descricao" to descricao,
             "criadaEm" to criadaEm.toString(),
             "expiraEm" to expiraEm.toString(),
-        )
+        ) + (referencia?.let { mapOf("referencia" to it) } ?: emptyMap())
 
     fun pagamento() = PagamentoFeito(valor.valor, descricao, mascararNome(recebedor), checkNotNull(pagaEm))
+
+    /**
+     * Esta cobrança pedida de novo com a mesma referência. Com outro valor ou descrição é outro pedido:
+     * melhor recusar do que cobrar errado.
+     */
+    fun repeticao(
+        valorCentavos: Long,
+        descricao: String,
+        agora: Instant,
+    ): CobrancaDoLojista {
+        if (valor.valor != valorCentavos || this.descricao != descricao) {
+            throw RegraDeNegocio("esta referência já foi usada numa cobrança com outro valor ou descrição")
+        }
+        return doLojista(agora)
+    }
 
     /** O CRC não é segurança: um QR com outro valor impresso foi mexido, e não é pago. */
     fun conferir(lido: Qr) {
@@ -100,23 +118,28 @@ class CobrancasNoBanco(
         descricao: String,
         criadaEm: Instant,
         expiraEm: Instant,
-    ): Long =
-        jdbc
-            .sql(
-                """
-                insert into cobranca (codigo, recebedor_conta, valor, descricao, criada_em, expira_em)
-                select :codigo, id, :valor, :descricao, :criada, :expira
-                from conta where dono_id = :dono and tipo = 'carteira'
-                returning id
-                """.trimIndent(),
-            ).param("codigo", UUID.randomUUID())
-            .param("valor", valor)
-            .param("descricao", descricao)
-            .param("criada", utc(criadaEm))
-            .param("expira", utc(expiraEm))
-            .param("dono", donoId)
-            .query(Long::class.java)
-            .single()
+        referencia: String? = null,
+    ): Cobranca {
+        val id =
+            jdbc
+                .sql(
+                    """
+                    insert into cobranca (codigo, recebedor_conta, valor, descricao, criada_em, expira_em, referencia)
+                    select :codigo, id, :valor, :descricao, :criada, :expira, :referencia
+                    from conta where dono_id = :dono and tipo = 'carteira'
+                    returning id
+                    """.trimIndent(),
+                ).param("codigo", UUID.randomUUID())
+                .param("valor", valor)
+                .param("descricao", descricao)
+                .param("criada", utc(criadaEm))
+                .param("expira", utc(expiraEm))
+                .param("referencia", referencia)
+                .param("dono", donoId)
+                .query(Long::class.java)
+                .single()
+        return checkNotNull(varias("c.id = :id", "id" to id).singleOrNull())
+    }
 
     fun carteiraDe(usuarioId: Long): Long =
         jdbc
@@ -124,8 +147,6 @@ class CobrancasNoBanco(
             .param("dono", usuarioId)
             .query(Long::class.java)
             .single()
-
-    fun porId(id: Long): Cobranca? = varias("c.id = :id", "id" to id).singleOrNull()
 
     /** Só se for do lojista [donoId]; [travar] segura a linha até o fim da transação. */
     fun doLojista(
@@ -141,6 +162,14 @@ class CobrancasNoBanco(
             "r.dono_id = :dono order by c.id desc limit 100",
             "dono" to donoId,
         )
+
+    /** A cobrança do lojista [donoId] com esta referência (V9). */
+    fun porReferencia(
+        donoId: Long,
+        referencia: String,
+    ): Cobranca? =
+        varias("r.dono_id = :dono and c.referencia = :referencia", "dono" to donoId, "referencia" to referencia)
+            .singleOrNull()
 
     fun porCodigo(
         codigo: UUID,
@@ -160,7 +189,7 @@ class CobrancasNoBanco(
                 jdbc.sql(
                     """
                     select c.id, c.codigo, c.recebedor_conta, u.nome, c.valor, c.descricao, c.estado,
-                           c.criada_em, c.expira_em, c.pagador_conta, c.paga_em,
+                           c.criada_em, c.expira_em, c.pagador_conta, c.paga_em, c.referencia,
                            (select coalesce(sum(e.valor), 0) from estorno e where e.cobranca_id = c.id) as estornado
                     from cobranca c join conta r on r.id = c.recebedor_conta join usuario u on u.id = r.dono_id
                     where $filtro
@@ -238,6 +267,7 @@ private fun ResultSet.cobranca() =
         pagadorConta = getLong("pagador_conta").takeUnless { wasNull() },
         pagaEm = instante("paga_em"),
         estornado = Centavos(getLong("estornado")),
+        referencia = getString("referencia"),
     )
 
 private fun ResultSet.instante(coluna: String) = getObject(coluna, OffsetDateTime::class.java)?.toInstant()

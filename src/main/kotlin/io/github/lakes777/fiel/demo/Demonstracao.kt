@@ -82,7 +82,12 @@ class Demonstracao(
         val visitante = cadastrar(Pessoa("Visitante ${sufixo.uppercase()}", "visitante-$sufixo@$DOMINIO"))
         val bob = cadastrar(Pessoa("Bob Lima", bobDe(sufixo)))
         chaves.criar(bob, "email")
-        val cobranca = cobrancas.criar(garantir(LOJA), PedidoDeCobranca(PRECO_DA_CAMISETA, "Camiseta Fiel", UM_DIA))
+        val cobranca =
+            cobrancas
+                .criar(
+                    garantir(LOJA),
+                    PedidoDeCobranca(PRECO_DA_CAMISETA, "Camiseta Fiel", UM_DIA),
+                ).cobranca
         // Vai para a sessão: sem o hash da senha (o login normal apaga do mesmo jeito)
         visitante.eraseCredentials()
         return Visitante(visitante, Roteiro(cobranca.qr, ANA.email, bob.email))
