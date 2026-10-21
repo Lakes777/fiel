@@ -557,7 +557,7 @@ roda as migrações e reinicia a API, que semeia a Loja Exemplo e a Ana.
 
 | Peça | Como |
 | --- | --- |
-| Imagens | [`Dockerfile`](Dockerfile) monta duas, no PC e sem emulação: a API (JRE 21, heap de 300 MB, em 512 MB) e as telas (o build do Vite num Caddy de 10 MB) |
+| Imagens | [`Dockerfile`](Dockerfile) monta duas, no PC e sem emulação: a API (JRE 25, heap de 300 MB, em 512 MB) e as telas (o build do Vite num Caddy de 10 MB) |
 | Banco | O Postgres do Beacon, com dois usuários: `fiel_dono` (migrações) e `fiel_api` (a API) |
 | Proxy | O Caddy do Beacon: HTTPS, `/api/*` para a API sem o prefixo, o resto para as telas, CSP sem script inline ([`deploy/fiel.caddy`](deploy/fiel.caddy)) |
 | Segredos | Gerados na VM pelo [`deploy/preparar-vm.sh`](deploy/preparar-vm.sh); a senha do dono fica só no `.env.dono`, que só o `migrar.sh` lê |
@@ -566,7 +566,7 @@ roda as migrações e reinicia a API, que semeia a Loja Exemplo e a Ana.
 
 ## Rodando
 
-Precisa do Java 21 e do Docker.
+Precisa do Java 25 e do Docker.
 
 ```bash
 docker compose up -d        # Postgres 17 de desenvolvimento (porta 5436)

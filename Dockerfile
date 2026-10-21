@@ -6,7 +6,7 @@
 # resultado (bytecode da JVM, JavaScript) é igual em qualquer processador. Só as finais são ARM.
 
 # 1. A API: o jar do Spring Boot, já extraído em camadas (app + lib/), que parte mais rápido
-FROM --platform=$BUILDPLATFORM eclipse-temurin:21-jdk AS compilacao-api
+FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk AS compilacao-api
 WORKDIR /fonte
 COPY gradlew settings.gradle.kts build.gradle.kts ./
 COPY gradle gradle
@@ -19,7 +19,7 @@ RUN --mount=type=cache,target=/root/.gradle \
 	./gradlew --no-daemon -q -Pkotlin.compiler.execution.strategy=in-process bootJar \
 	&& java -Djarmode=tools -jar build/libs/fiel-0.0.1-SNAPSHOT.jar extract --destination /app
 
-FROM eclipse-temurin:21-jre-alpine AS api
+FROM eclipse-temurin:25-jre-alpine AS api
 ARG COMMIT=desconhecido
 LABEL org.opencontainers.image.revision=$COMMIT
 RUN addgroup -S fiel && adduser -S -G fiel fiel
